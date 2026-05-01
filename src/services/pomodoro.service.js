@@ -1,5 +1,6 @@
 const BadRequestException = require("../exceptions/BadRequestException");
 const UnauthorizedException = require("../exceptions/UnauthorizedException");
+const PomodoroMapper = require("../mappers/pomodoro.mapper");
 
 class PomodoroService{
     constructor({pomodoroRepository}){
@@ -13,7 +14,7 @@ class PomodoroService{
             duration,
             category
         })
-        return newSession 
+        return {newSession:PomodoroMapper.toResponse(newSession)}
     };
     async updateSessionStatus(sessionId, userId, status){
         const session = await this.pomodoroRepository.findById(sessionId);
@@ -26,7 +27,7 @@ class PomodoroService{
         const updatedSession = await this.pomodoroRepository.update(sessionId,{
             status,
         })
-        return updatedSession;
+        return {updatedSession:PomodoroMapper.toResponse(updatedSession)};
     }
 }
 
