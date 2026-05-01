@@ -33,8 +33,7 @@ class FriendshipService {
 
     return FriendshipMapper.toResponse(newRequest);
   }
-
-  async respondToRequest(requestId, recipientId, action) { //İsteği Kabul et
+  async respondToRequest(requestId, recipientId, action) { //Gelen isteği yanıtla (Kabul et veya Reddet)
     const allowedActions = ["accepted", "rejected"];
     if (!allowedActions.includes(action)) {
       throw new BadRequestException("Geçersiz işlem!");
@@ -59,11 +58,14 @@ class FriendshipService {
 
     return FriendshipMapper.toResponse(updatedRequest);
   }
-
-  async getFriends(userId) { //İstekleri listele
+  async getFriends(userId) { //Onaylanmış (Mevcut) arkadaşları listele
     const friendships = await this.friendshipRepository.findAcceptedFriends(userId);
     return friendships.map(friendship => FriendshipMapper.toResponse(friendship));
   }
+  async findPendingRequests(userId){
+    
+  }
+
 }
 
 module.exports = FriendshipService;
