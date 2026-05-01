@@ -7,5 +7,6 @@ router.use(authMiddleware);
 
 router.post("/request",friendshipController.sendRequest);
 router.patch("/:id/respond",friendshipController.respondToRequest);
+router.get("/", friendshipController.getFriends);
 
 module.exports = router;

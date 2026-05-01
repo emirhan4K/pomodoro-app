@@ -5,6 +5,9 @@ class BaseRepository {
   create(data) {
     return this.model.create(data);
   }
+  find(populate){
+    return this.model.find(populate)
+  }
   findById(id) {
     return this.model.findById(id);
   }

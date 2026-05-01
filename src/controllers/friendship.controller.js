@@ -33,6 +33,16 @@ class FriendshipController {
       next(error);
     }
   }
+  getFriends = async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const friends = await this.friendshipService.getFriends(userId);
+      res.status(200).json(friends);
+    } catch (error) {
+      next(error);
+    }
+  };
+
 }
 
 module.exports = FriendshipController;
