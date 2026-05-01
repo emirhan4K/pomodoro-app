@@ -8,9 +8,11 @@ app.use(express.json());
 
 //Route Imports
 const authRoutes = require("./routes/auth.routes")
+const pomodoroRoutes = require("./routes/pomodoro.routes");
 
 //API Routes
 app.use('/api/auth',authRoutes);
+app.use('/api/pomodoros', pomodoroRoutes);
 
 //Global hata yakalayıcı
 app.use(errorMiddleware);
