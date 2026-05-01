@@ -17,6 +17,10 @@ class PomodoroService{
         return {newSession:PomodoroMapper.toResponse(newSession)}
     };
     async updateSessionStatus(sessionId, userId, status){ //Pomodoro durumunu güncelle
+        const allowedStatuses = ["running", "paused", "completed", "cancelled"];
+    if (!allowedStatuses.includes(status)) {
+      throw new BadRequestException("Geçersiz Pomodoro durumu!");
+    }
         const session = await this.pomodoroRepository.findById(sessionId);
         if(!session){
             throw new BadRequestException("Pomodoro bulunamadı!")
