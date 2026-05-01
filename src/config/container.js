@@ -1,19 +1,19 @@
 const awilix = require('awilix');
+const path = require('path'); 
 
-// 1. Tedarikçiyi (Konteyneri) oluştur
 const container = awilix.createContainer({
   injectionMode: awilix.InjectionMode.PROXY // Proxy modu: Her şeyi bir obje ({}) içinde gönderir
 });
 
-// 2. Modülleri otomatik bul ve kaydet (Sihir burada!)
 container.loadModules(
   [
-    'src/repositories/*.js', // Tüm repository'leri bul
-    '!src/repositories/base.repository.js', // ! Bunu hariç tut
-    'src/services/*.js',     // Tüm service'leri bul
-    'src/controllers/*.js'   // Tüm controller'ları bul
+    '../repositories/*.js', // config klasöründen bir üste (src) çık ve repository'leri bul
+    '!../repositories/base.repository.js', // ! Base repository'yi hariç tut
+    '../services/*.js',     // Tüm service'leri bul
+    '../controllers/*.js'   // Tüm controller'ları bul
   ],
   {
+    cwd: __dirname, // Arama işlemini tam olarak bu dosyanın bulunduğu konumdan başlat
     formatName: 'camelCase', // Dosya isimlerini camelCase yap (örn: user.repository.js -> userRepository)
     resolverOptions: {
       lifetime: awilix.Lifetime.SINGLETON, // Her şeyden sadece 1 tane üret, RAM'i yorma
