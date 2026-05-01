@@ -27,6 +27,17 @@ class PomodoroController {
       next(error);
     }
   };
+  getHistory = async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const result = await this.pomodoroService.getUserHistory(
+        userId,
+      );
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = PomodoroController;

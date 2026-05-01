@@ -6,7 +6,7 @@ class PomodoroService{
     constructor({pomodoroRepository}){
         this.pomodoroRepository = pomodoroRepository;
     }
-    async createSession(userId, bodyData){
+    async createSession(userId, bodyData){ //Pomodoro oluştur
         const {category,duration} = bodyData;
 
         const newSession  = await this.pomodoroRepository.create({
@@ -16,7 +16,7 @@ class PomodoroService{
         })
         return {newSession:PomodoroMapper.toResponse(newSession)}
     };
-    async updateSessionStatus(sessionId, userId, status){
+    async updateSessionStatus(sessionId, userId, status){ //Pomodoro durumunu güncelle
         const session = await this.pomodoroRepository.findById(sessionId);
         if(!session){
             throw new BadRequestException("Pomodoro bulunamadı!")
@@ -28,6 +28,10 @@ class PomodoroService{
             status,
         })
         return {updatedSession:PomodoroMapper.toResponse(updatedSession)};
+    }
+    async getUserHistory(userId){ //Geçmiş pomodoroları getir
+        const pomodoros = await this.pomodoroRepository.getUserHistory(userId);
+        return pomodoros.map(pomodoro => PomodoroMapper.toResponse(pomodoro));
     }
 }
 
