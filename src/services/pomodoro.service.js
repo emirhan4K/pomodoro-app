@@ -3,21 +3,22 @@ const UnauthorizedException = require("../exceptions/UnauthorizedException");
 const PomodoroMapper = require("../mappers/pomodoro.mapper");
 
 class PomodoroService{
-    constructor({pomodoroRepository}){
+    constructor({pomodoroRepository, statisticRepository }){
         this.pomodoroRepository = pomodoroRepository;
+        this.statisticRepository = statisticRepository;
     }
     async createSession(userId, bodyData){ //Pomodoro oluştur
-        const {category,duration} = bodyData;
+       const { category, duration } = bodyData;
 
-        const newSession  = await this.pomodoroRepository.create({
-            user:userId,
-            duration,
-            category
-        })
-        return {newSession:PomodoroMapper.toResponse(newSession)}
+    const newSession = await this.pomodoroRepository.create({
+      user: userId,
+      duration,
+      category
+    });
+    return { newSession: PomodoroMapper.toResponse(newSession) };
     };
     async updateSessionStatus(sessionId, userId, status){ //Pomodoro durumunu güncelle
-        const allowedStatuses = ["running", "paused", "completed", "cancelled"];
+       const allowedStatuses = ["running", "paused", "completed", "cancelled"];
     if (!allowedStatuses.includes(status)) {
       throw new BadRequestException("Geçersiz Pomodoro durumu!");
     }
@@ -31,6 +32,9 @@ class PomodoroService{
         const updatedSession = await this.pomodoroRepository.update(sessionId,{
             status,
         })
+        if (status === "completed") {
+        await this.statisticRepository.incrementStats(userId, session.duration);
+        }
         return {updatedSession:PomodoroMapper.toResponse(updatedSession)};
     }
     async getUserHistory(userId){ //Geçmiş pomodoroları getir
