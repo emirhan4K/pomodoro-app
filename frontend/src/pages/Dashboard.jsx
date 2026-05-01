@@ -1,53 +1,81 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import api from '../services/api';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import PomodoroTimer from '../components/PomodoroTimer';
-import ProfileCard from '../components/ProfileCard';
 
-const Dashboard = () => {
-  const [profile, setProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchProfileData = useCallback(async () => {
-    try {
-      const response = await api.get('/profile/me');
-      setProfile(response.data); 
-    } catch (error) {
-      console.error("Profil çekilirken hata:", error);
-    } finally {
-      setIsLoading(false); 
-    }
-  }, []);
+const Dashboard = ({ profile, notificationCount }) => {
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isActive, setIsActive] = useState(false);
+  
+  // Dairenin çevresi: 2 * Math.PI * radius (r=120 ise ~754)
+  const radius = 120;
+  const circumference = 2 * Math.PI * radius;
+  const progress = ((25 * 60 - timeLeft) / (25 * 60)) * circumference;
 
   useEffect(() => {
-    fetchProfileData();
-  }, [fetchProfileData]);
+    let interval = null;
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    } else {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
-    // BÜTÜN SAYFANIN ARKA PLANI BURADA DEĞİŞİYOR (bg-slate-50 -> bg-slate-950)
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans pb-12 transition-colors duration-500">
-      <div className="max-w-6xl mx-auto px-4">
-        
-        <Navbar profile={profile} />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Sol Taraf: Sayaç */}
-          <PomodoroTimer onComplete={fetchProfileData} />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 pb-12 font-sans">
+      <div className="max-w-7xl mx-auto px-4">
+        <Navbar profile={profile} notificationCount={notificationCount} />
 
-          {/* Sağ Taraf: İstatistikler ve Kaybolan Günün Sözü Kartı */}
-          <div className="space-y-8">
-            <ProfileCard profile={profile} isLoading={isLoading} />
-            
-            {/* KAYBOLAN MOTİVASYON KARTI GERİ GELDİ */}
-            <div className="bg-gradient-to-br from-indigo-600 to-purple-700 dark:from-indigo-800 dark:to-purple-900 rounded-3xl shadow-lg dark:shadow-indigo-900/20 p-8 text-white transition-colors duration-300">
-               <h3 className="font-bold mb-2 text-indigo-100 dark:text-indigo-200">Günün Sözü</h3>
-               <p className="font-medium text-lg italic leading-relaxed">
-                 "Büyük işler güçle değil, azimle başarılır."
-               </p>
+        <div className="flex flex-col items-center justify-center mt-20">
+          <div className="relative flex items-center justify-center group">
+            {/* DIŞ HALKA (Progress Ring) */}
+            <svg className="w-[300px] h-[300px] transform -rotate-90 drop-shadow-[0_0_15px_rgba(79,70,229,0.3)]">
+              <circle
+                cx="150" cy="150" r={radius}
+                className="stroke-slate-200 dark:stroke-slate-800"
+                strokeWidth="12" fill="transparent"
+              />
+              <circle
+                cx="150" cy="150" r={radius}
+                className="stroke-indigo-600 dark:stroke-indigo-400 transition-all duration-1000 ease-linear"
+                strokeWidth="12" fill="transparent"
+                strokeDasharray={circumference}
+                strokeDashoffset={circumference - progress}
+                strokeLinecap="round"
+              />
+            </svg>
+
+            {/* İÇ ZAMANLAYICI */}
+            <div className="absolute flex flex-col items-center">
+              <span className="text-6xl font-black text-slate-800 dark:text-white tracking-tighter">
+                {formatTime(timeLeft)}
+              </span>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Odaklanma Vakti</p>
             </div>
           </div>
 
+          {/* Kontrol Butonları */}
+          <div className="flex gap-4 mt-12">
+            <button 
+              onClick={() => setIsActive(!isActive)}
+              className={`px-10 py-4 rounded-2xl font-black text-sm tracking-widest transition-all ${
+                isActive ? 'bg-rose-500/10 text-rose-500' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30'
+              }`}
+            >
+              {isActive ? 'DURAKLAT' : 'BAŞLAT'}
+            </button>
+            <button 
+              onClick={() => { setTimeLeft(25 * 60); setIsActive(false); }}
+              className="px-10 py-4 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-sm tracking-widest"
+            >
+              SIFIRLA
+            </button>
+          </div>
         </div>
       </div>
     </div>
