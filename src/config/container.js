@@ -9,6 +9,7 @@ const container = awilix.createContainer({
 container.loadModules(
   [
     'src/repositories/*.js', // Tüm repository'leri bul
+    '!src/repositories/base.repository.js', // ! Bunu hariç tut
     'src/services/*.js',     // Tüm service'leri bul
     'src/controllers/*.js'   // Tüm controller'ları bul
   ],
