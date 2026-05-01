@@ -1,5 +1,6 @@
 const BadRequestException = require("../exceptions/BadRequestException");
 const UnauthorizedException = require("../exceptions/UnauthorizedException");
+const FriendshipMapper = require("../mappers/friendship.mapper");
 
 class FriendshipService {
   constructor({ friendshipRepository, userRepository }) {
@@ -7,7 +8,7 @@ class FriendshipService {
     this.userRepository = userRepository;
   }
   async sendRequest(requesterId, recipientId) {
-    if (requesterId === recipientId) {
+    if (requesterId.toString() === recipientId.toString()) {
       throw new BadRequestException(
         "Kendinize arkadaşlık isteği gönderemezsiniz!",
       );
@@ -32,7 +33,7 @@ class FriendshipService {
       requester: requesterId,
       recipient: recipientId,
     });
-    return newRequest;
+    return FriendshipMapper.toResponse(newRequest);
   }
   async respondToRequest(requestId, recipientId, action) {
     const allowedActions = ["accepted", "rejected"];
@@ -47,12 +48,12 @@ class FriendshipService {
       throw new UnauthorizedException("Bu isteğe yanıt veremezsiniz!");
     }
     if (request.status !== "pending") {
-      throw new Error("Bu talep zaten işleme alındı!");
+      throw new BadRequestException("Bu talep zaten işleme alındı!");
     }
     const updatedRequest = await this.friendshipRepository.update(requestId, {
       status: action,
     });
-    return updatedRequest;
+    return FriendshipMapper.toResponse(updatedRequest);
   }
 }
 
