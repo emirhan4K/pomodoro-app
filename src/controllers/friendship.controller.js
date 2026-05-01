@@ -42,7 +42,15 @@ class FriendshipController {
       next(error);
     }
   };
-
+  getPendingRequests = async (req, res, next) => { 
+    try {
+      const userId = req.user.id;
+      const friends = await this.friendshipService.getPendingRequests(userId);
+      res.status(200).json(friends);
+    } catch (error) {
+      next(error);
+    }
+   }
 }
 
 module.exports = FriendshipController;

@@ -6,7 +6,10 @@ const authMiddleware = require('../middlewares/auth.middleware');
 router.use(authMiddleware);
 
 router.post("/request",friendshipController.sendRequest);
-router.patch("/:id/respond",friendshipController.respondToRequest);
 router.get("/", friendshipController.getFriends);
+router.get("/requests/pending", friendshipController.getPendingRequests);
+router.patch("/:id/respond",friendshipController.respondToRequest);
+
+
 
 module.exports = router;

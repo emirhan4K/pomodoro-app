@@ -62,8 +62,9 @@ class FriendshipService {
     const friendships = await this.friendshipRepository.findAcceptedFriends(userId);
     return friendships.map(friendship => FriendshipMapper.toResponse(friendship));
   }
-  async findPendingRequests(userId){
-    
+  async getPendingRequests(userId){ //Bekleyen İstekleri listele
+    const friendships = await this.friendshipRepository.findPendingRequests(userId);
+    return friendships.map(friendship => FriendshipMapper.toResponse(friendship));
   }
 
 }

@@ -26,6 +26,14 @@ class FriendshipRepository extends BaseRepository {
     .populate("requester", "username email")
     .populate("recipient", "username email");
   }
+
+  //Bekleyen istekleri getir
+  async findPendingRequests(userId){
+    return await this.model.find({
+        recipient: userId,
+        status:"pending"
+    }).populate("requester","username email")
+  }
 }
 
 module.exports = FriendshipRepository;
