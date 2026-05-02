@@ -31,7 +31,6 @@ class AuthController {
   };
 
   forgotPassword = async (req,res,next) => {
-    console.log("Gelen Body:", req.body)
     try {
       const {email} = req.body;
       const result = await this.authService.forgotPassword(email);

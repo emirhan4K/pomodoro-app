@@ -15,12 +15,14 @@ const authRoutes = require("./routes/auth.routes")
 const pomodoroRoutes = require("./routes/pomodoro.routes");
 const friendshipRoutes = require("./routes/friendship.routes");
 const profileRoutes = require("./routes/profile.routes");
+const taskRoutes = require("./routes/task.routes");
 
 //API Routes
 app.use('/api/auth',authRoutes);
 app.use('/api/pomodoros', pomodoroRoutes);
 app.use('/api/friendships',friendshipRoutes);
 app.use('/api/profile',profileRoutes);
+app.use('/api/tasks',taskRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 

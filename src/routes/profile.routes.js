@@ -5,7 +5,7 @@ const profileController = container.resolve("profileController")
 const authMiddleware = require('../middlewares/auth.middleware');
 router.use(authMiddleware);
 
-router.get("/me", authMiddleware, profileController.getProfile);
+router.get("/me",  profileController.getProfile);
 router.get("/:userId", profileController.getPublicProfile);
 
 module.exports = router;
