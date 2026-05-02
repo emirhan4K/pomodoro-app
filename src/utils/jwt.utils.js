@@ -9,3 +9,4 @@ const verifyToken = (token) => { //JWT doğrulama fonksiyonu
 };
 
 module.exports = { generateToken, verifyToken };
+
