@@ -31,6 +31,16 @@
         }
       }
     },
+    "/api/auth/forgot-password": {
+      "post": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/api/pomodoros/": {
       "post": {
         "description": "",

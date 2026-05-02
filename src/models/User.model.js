@@ -24,8 +24,14 @@ const userSchema = new mongoose.Schema({
         enum : ['user', 'admin'],
         default: 'user'
     },
-    resetPasswordToken: String, //Şifre sıfırlama tokeni
-    resetPasswordExpire: Date //Şifre sıfırlama tokeninin geçerlilik süresi
+   resetPasswordCode: { //üretilen kod
+        type: String,
+        default: null
+    },
+    resetPasswordExpire: { //kodun son kullanma tarihi
+        type: Date,
+        default: null
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

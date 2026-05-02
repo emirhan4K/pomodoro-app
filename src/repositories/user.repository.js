@@ -5,6 +5,9 @@ class UserRepository extends BaseRepository{
     constructor(){
         super(User)
     }
+    async findByEmail(email){
+        return this.findOne({ email });
+    }
 }
 
 module.exports = UserRepository;
