@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import ForgotPassword from './pages/ForgotPassword';
 
 function App() {
   const [profile, setProfile] = useState(null);
@@ -56,6 +57,7 @@ function App() {
       <Routes>
         <Route path="/" element={profile ? <Navigate to="/dashboard" /> : <Login onLoginSuccess={refreshAppData} />} />
         <Route path="/register" element={profile ? <Navigate to="/dashboard" /> : <Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/dashboard" element={profile ? <Dashboard profile={profile} onComplete={refreshAppData} notificationCount={notifications.length} /> : <Navigate to="/" />} />
         <Route path="/profile" element={profile ? <Profile profile={profile} requests={notifications} refresh={refreshAppData} /> : <Navigate to="/" />} />
         <Route path="*" element={<Navigate to="/" />} />

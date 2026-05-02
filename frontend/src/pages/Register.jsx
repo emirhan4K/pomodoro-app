@@ -7,7 +7,7 @@ const Register = () => {
     username: '', 
     email: '', 
     password: '',
-    passwordConfirm: '' // Joi şemandaki isimle birebir aynı yaptık
+    passwordConfirm: '' 
   });
 
   const [error, setError] = useState('');
@@ -33,7 +33,7 @@ const Register = () => {
       alert("Hesabın başarıyla oluşturuldu!");
       navigate('/');
     } catch (err) {
-      // Joi'den gelen hata mesajlarını (örn: 'Şifre tekrarı alanı zorunludur') burada yakalıyoruz
+      // Joi'den gelen hata mesajlarını burada yakalıyoruz
       setError(err.response?.data?.message || "Kayıt sırasında bir hata oluştu.");
     } finally {
       setIsLoading(false);
@@ -41,49 +41,55 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8faff] flex items-center justify-center p-4 font-sans">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 font-sans"
+      style={{ 
+        backgroundColor: '#090A0F', 
+        backgroundImage: 'radial-gradient(circle at 50% 50%, #15103A 0%, #090A0F 80%)' 
+      }}
+    >
       
-      <div className="bg-white p-8 md:p-12 rounded-[45px] shadow-[0_20px_50px_rgba(0,0,0,0.05)] w-full max-w-[480px] transition-all">
+      <div className="bg-[#151928] p-10 rounded-[24px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-full max-w-[420px] box-border transition-all">
         
         {/* Logo Bölümü */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 bg-gradient-to-br from-[#a855f7] to-[#d946ef] rounded-3xl flex items-center justify-center text-white font-black text-4xl shadow-lg mb-6">
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-12 h-12 bg-[#8B5CF6] rounded-[12px] flex items-center justify-center text-white font-bold text-2xl mb-4">
             P
           </div>
-          <h2 className="text-[32px] font-black text-[#1e293b] tracking-tight mb-2">Aramıza Katıl</h2>
-          <p className="text-[#94a3b8] font-medium text-center">Verimliliğini artırmaya başla.</p>
+          <h2 className="text-[22px] font-bold text-white mb-2 tracking-tight">Aramıza Katıl</h2>
+          <p className="text-[13px] text-[#828B9E] text-center">Verimliliğini artırmaya başla.</p>
         </div>
 
-        {/* Hata Mesajı Alanı */}
+        {/* Hata Mesajı Alanı (Karanlık temaya uyumlu kırmızı) */}
         {error && (
-          <div className="bg-[#fff1f2] border border-[#ffe4e6] text-[#e11d48] px-6 py-4 rounded-3xl mb-8 text-sm text-center font-bold">
+          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-[10px] mb-6 text-[13px] text-center font-bold">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-6">
+        <form onSubmit={handleRegister} className="space-y-5">
           {/* Kullanıcı Adı */}
           <div>
-            <label className="block text-[11px] font-bold text-[#64748b] uppercase tracking-widest mb-2 ml-1">Kullanıcı Adı</label>
+            <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">KULLANICI ADI</label>
             <input
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({...formData, username: e.target.value})}
-              className="w-full px-6 py-4 bg-[#f1f5f9] border-none rounded-2xl focus:ring-2 focus:ring-[#a855f7] text-[#1e293b] font-medium transition-all outline-none placeholder-[#cbd5e1]"
-              placeholder="flasco"
+              className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
+              placeholder="Örn: emirhan"
               required
             />
           </div>
 
           {/* E-Posta */}
           <div>
-            <label className="block text-[11px] font-bold text-[#64748b] uppercase tracking-widest mb-2 ml-1">E-Posta</label>
+            <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">E-POSTA</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-6 py-4 bg-[#f1f5f9] border-none rounded-2xl focus:ring-2 focus:ring-[#a855f7] text-[#1e293b] font-medium transition-all outline-none placeholder-[#cbd5e1]"
-              placeholder="emodemo0101@mail.com"
+              className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
+              placeholder="isim@mail.com"
               required
             />
           </div>
@@ -91,25 +97,24 @@ const Register = () => {
           {/* Şifre Alanları */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[11px] font-bold text-[#64748b] uppercase tracking-widest mb-2 ml-1">Şifre</label>
+              <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">ŞİFRE</label>
               <input
                 type="password"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full px-6 py-4 bg-[#f1f5f9] border-none rounded-2xl focus:ring-2 focus:ring-[#a855f7] text-[#1e293b] transition-all outline-none"
-                placeholder="••••••••••"
+                className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
+                placeholder="••••••••"
                 required
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-[#64748b] uppercase tracking-widest mb-2 ml-1">Şifre Tekrar</label>
+              <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">ŞİFRE TEKRAR</label>
               <input
                 type="password"
-                // BURASI DÜZELDİ: confirmPassword yerine passwordConfirm
                 value={formData.passwordConfirm}
                 onChange={(e) => setFormData({...formData, passwordConfirm: e.target.value})}
-                className="w-full px-6 py-4 bg-[#f1f5f9] border-none rounded-2xl focus:ring-2 focus:ring-[#a855f7] text-[#1e293b] transition-all outline-none"
-                placeholder="••••••••••"
+                className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
+                placeholder="••••••••"
                 required
               />
             </div>
@@ -118,14 +123,14 @@ const Register = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-[#9333ea] to-[#db2777] hover:opacity-90 text-white font-bold py-5 rounded-[22px] shadow-xl shadow-purple-100 transition-all active:scale-[0.98] disabled:opacity-50 text-lg"
+            className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-bold py-[14px] rounded-[10px] transition-colors text-[15px] mt-2 active:scale-[0.98] disabled:opacity-50"
           >
             {isLoading ? 'Lütfen Bekle...' : 'Kayıt Ol'}
           </button>
         </form>
 
-        <p className="mt-10 text-center text-[15px] text-[#64748b] font-medium">
-          Zaten hesabın var mı? <Link to="/" className="text-[#9333ea] font-bold hover:underline ml-1">Giriş Yap</Link>
+        <p className="mt-8 text-center text-[12px] text-[#828B9E]">
+          Zaten hesabın var mı? <Link to="/" className="text-[#8B5CF6] font-bold hover:text-[#7C3AED] transition-colors ml-1 text-decoration-none">Giriş Yap</Link>
         </p>
       </div>
     </div>
