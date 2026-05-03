@@ -5,8 +5,10 @@ class StreakService {
   constructor({ profileRepository }) {
     this.profileRepository = profileRepository;
   }
+
   async calculateStreak(currentStreak, bestStreak, lastSessionDate) {
     const now = new Date();
+    
     if (!lastSessionDate) {
       return {
         currentStreak: 1,
@@ -14,27 +16,21 @@ class StreakService {
         lastSessionDate: now,
       };
     }
-
-    // Yerel zamanda tarih nesneleri oluştur
+    const last = new Date(lastSessionDate);
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const lastDate = new Date(
-      lastSessionDate.getFullYear(),
-      lastSessionDate.getMonth(),
-      lastSessionDate.getDate(),
-    );
+    const lastDate = new Date(last.getFullYear(), last.getMonth(), last.getDate());
 
-    // Gün farkını hesapla
     const diffDays = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
-      // Bugün zaten yapmış
+      const fixedStreak = currentStreak === 0 ? 1 : currentStreak;
+      
       return {
-        currentStreak: currentStreak,
-        bestStreak: bestStreak,
+        currentStreak: fixedStreak,
+        bestStreak: Math.max(fixedStreak, bestStreak),
         lastSessionDate: now,
       };
     } else if (diffDays === 1) {
-      // Dün yapmış, bugün yapıyor - Seri artar
       const newStreak = currentStreak + 1;
       return {
         currentStreak: newStreak,
@@ -42,7 +38,6 @@ class StreakService {
         lastSessionDate: now,
       };
     } else {
-      // Aradan 1 günden fazla geçmiş - Seri sıfırla
       return {
         currentStreak: 1,
         bestStreak: bestStreak,

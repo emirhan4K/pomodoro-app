@@ -19,7 +19,7 @@ const Dashboard = ({ profile, notificationCount }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const durations = [1, 30, 45, 60, 90];
+  const durations = [25, 30, 45, 60, 90];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 pb-12 font-sans">

@@ -2,15 +2,14 @@ import React from "react";
 import { useAuth } from "../context/AuthContext";
 
 const ProfileCard = () => {
-  const { user, loading: isLoading } = useAuth();
   const currentLevel = user?.level || 1;
   const currentXp = user?.xp || 0;
-  const totalPomodoros = user?.stats?.totalPomodoros || 0;
-  const totalWorkTime = user?.stats?.totalWorkTime || 0;
-  const currentStreak = user?.streak?.currentStreak || 0;
-  const bestStreak = user?.streak?.bestStreak || 0;
+  const totalPomodoros = user?.totalPomodoros || 0; // .stats? sildik
+  const totalWorkTime = user?.totalWorkTime || 0; // .stats? sildik
+  const currentStreak = user?.currentStreak || 0; // .streak? sildik
+  const bestStreak = user?.bestStreak || 0; // .streak? sildik
 
-  // Hesaplama kısmı
+  // Hesaplama kısmı (Aynen kalıyor)
   const requiredXp = Math.floor(currentLevel * 100 * 1.5);
   const progressPercentage = Math.min((currentXp / requiredXp) * 100, 100);
   return (

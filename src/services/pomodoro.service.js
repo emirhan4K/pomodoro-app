@@ -16,10 +16,9 @@ class PomodoroService {
     this.profileRepository = profileRepository;
     this.streakService = streakService;
   }
-  async createSession(userId, bodyData) {
-    //Pomodoro oluştur
-    const { category, duration } = bodyData;
 
+  async createSession(userId, bodyData) {
+    const { category, duration } = bodyData;
     const newSession = await this.pomodoroRepository.create({
       user: userId,
       duration,
@@ -27,57 +26,70 @@ class PomodoroService {
     });
     return { newSession: PomodoroMapper.toResponse(newSession) };
   }
+
   async updateSessionStatus(sessionId, userId, status) {
-    //Pomodoro durumunu güncelle
     const allowedStatuses = ["running", "paused", "completed", "cancelled"];
     if (!allowedStatuses.includes(status)) {
       throw new BadRequestException("Geçersiz Pomodoro durumu!");
     }
+
     const session = await this.pomodoroRepository.findById(sessionId);
     if (!session) {
       throw new BadRequestException("Pomodoro bulunamadı!");
     }
+
     if (session.user.toString() !== userId.toString()) {
       throw new UnauthorizedException("Bu oturumu değiştiremezsiniz.");
     }
-    const updatedSession = await this.pomodoroRepository.update(sessionId, {
-      status,
-    });
-    const cleanId =
-      userId && typeof userId === "object"
-        ? userId.id || userId._id || userId.user
-        : userId;
+
+    const updatedSession = await this.pomodoroRepository.update(sessionId, { status });
+    
+    // Güvenli ID temizliği
+    const cleanId = (userId && typeof userId === "object") ? (userId.id || userId._id || userId.user) : userId;
+    const cleanIdStr = cleanId.toString();
+
     let updatedProfile = null;
 
     if (status === "completed") {
-      await this.statisticRepository.incrementStats(cleanId, session.duration);
+      // İstatistik Güncelleme (Geçmiş kodundan gelen kısım)
+      if (this.statisticRepository && this.statisticRepository.incrementStats) {
+         await this.statisticRepository.incrementStats(cleanIdStr, session.duration);
+      }
 
       if (this.profileRepository) {
-        const profile = await this.profileRepository.findByUserId(cleanId);
-        const { currentStreak, bestStreak, lastSessionDate } =
-          await this.streakService.calculateStreak(
-            profile?.currentStreak || 0,
-            profile?.bestStreak || 0,
-            profile?.lastSessionDate || null,
-          );
+        const profile = await this.profileRepository.findByUserId(cleanIdStr);
+        
+        // Seri Hesapla
+        const streakData = await this.streakService.calculateStreak(
+          profile?.currentStreak || 0,
+          profile?.bestStreak || 0,
+          profile?.lastSessionDate || null
+        );
+
+        // İstatistikleri kaydet
         await this.profileRepository.updateStats(
-          cleanId,
+          cleanIdStr,
           session.duration,
-          currentStreak,
-          bestStreak,
-          lastSessionDate,
+          streakData.currentStreak,
+          streakData.bestStreak,
+          streakData.lastSessionDate
         );
       }
-      await this.profileService.gainXp(cleanId, session.duration);
-      updatedProfile = await this.profileService.getUserProfile(cleanId);
+
+      // XP Kazan
+      await this.profileService.gainXp(cleanIdStr, session.duration);
+      
+      // Profilin en güncel halini döndür
+      updatedProfile = await this.profileService.getUserProfile(cleanIdStr);
     }
+
     return {
       updatedSession: PomodoroMapper.toResponse(updatedSession),
       updatedProfile,
     };
   }
+
   async getUserHistory(userId) {
-    //Geçmiş pomodoroları getir
     const pomodoros = await this.pomodoroRepository.getUserHistory(userId);
     return pomodoros.map((pomodoro) => PomodoroMapper.toResponse(pomodoro));
   }

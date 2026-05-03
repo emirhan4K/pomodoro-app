@@ -5,16 +5,18 @@ import api from "../services/api";
 
 const Profile = ({ profile, requests = [], refresh }) => {
   const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "stats"; // Varsayılan sekme: stats
+  const activeTab = searchParams.get("tab") || "stats"; 
   const [searchQuery, setSearchQuery] = useState("");
-  const [friends, setFriends] = useState([]); // Gerçek arkadaş listesi için
+  const [friends, setFriends] = useState([]); 
 
   const username = profile?.username || "Kullanıcı";
   const currentStreak = profile?.currentStreak || 0;
   const bestStreak = profile?.bestStreak || 0;
-  const totalPomodoros = profile?.stats?.totalPomodoros || 0;
-  const totalHours = ((profile?.totalWorkTime || 0) / 60).toFixed(1);
-  const calculatedLevel = Math.floor(totalPomodoros / 5) + 1;
+  
+  // ŞU 3 SATIRI DEĞİŞTİR:
+  const totalPomodoros = profile?.totalPomodoros || 0; 
+const totalHours = Number(profile?.totalWorkTime || 0).toFixed(1);
+  const calculatedLevel = profile?.level || 1;
 
   // Gerçek arkadaş listesini çek
   useEffect(() => {

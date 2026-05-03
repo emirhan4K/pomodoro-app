@@ -7,9 +7,11 @@ class ProfileService {
     this.profileRepository = profileRepository;
     this.userRepository = userRepository;
   }
+
   async getUserProfile(userId) {
     const user = await this.userRepository.findById(userId);
     let profile = await this.profileRepository.findByUserId(userId);
+    
     if (!profile) {
       profile = {
         xp: 0,
@@ -23,19 +25,19 @@ class ProfileService {
     }
     return ProfileMapper.toResponse(user, profile);
   }
+
   async handleCompletedPomodoro(userId, duration) {
     return await this.profileRepository.updateStats(userId, duration);
   }
+
   async getPublicProfile(targetUserId) {
-    //Kullanıcının profilini başkaları dışarıdan görüntüler
     const user = await this.userRepository.findById(targetUserId);
-    if (!user) {
-      throw new BadRequestException("Kullanıcı bulunamadı!");
-    }
+    if (!user) throw new BadRequestException("Kullanıcı bulunamadı!");
 
     const profile = await this.profileRepository.findByUserId(targetUserId);
     return ProfileMapper.toResponse(user, profile);
   }
+
   async gainXp(userId, earnedXp) {
     const cleanId = userId?.id || userId?._id || userId;
     let profile = await this.profileRepository.findByUserId(cleanId);
@@ -52,17 +54,17 @@ class ProfileService {
         lastSessionDate: null,
       });
     }
+
     let xp = profile.xp + earnedXp;
     let level = profile.level;
 
-    let requiredXp = Math.floor(level * 100 * 1.5); //Seviye atlama formülü ve kontrolü
+    // Seviye atlama kontrolü
+    let requiredXp = Math.floor(level * 100 * 1.5);
     if (xp >= requiredXp) {
       level += 1;
     }
-    await this.profileRepository.update(profile._id, {
-      xp,
-      level,
-    });
+
+    await this.profileRepository.update(profile._id, { xp, level });
     return { xp, level };
   }
 }
