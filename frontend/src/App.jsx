@@ -60,6 +60,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/dashboard" element={profile ? <Dashboard profile={profile} onComplete={refreshAppData} notificationCount={notifications.length} /> : <Navigate to="/" />} />
         <Route path="/profile" element={profile ? <Profile profile={profile} requests={notifications} refresh={refreshAppData} /> : <Navigate to="/" />} />
+        
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
