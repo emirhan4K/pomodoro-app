@@ -22,6 +22,14 @@ const profileSchema = new mongoose.Schema({
   avatar: {
     type: String,
     default: "default-avatar.png"
+  },
+  xp:{
+    type:Number,
+    default:0,
+  },
+  level:{
+    type:Number,
+    default:1
   }
 }, { timestamps: true });
 
