@@ -62,7 +62,7 @@ const Navbar = ({ notificationCount = 0 }) => {
           {isDropdownOpen && (
             <div className="absolute top-14 right-0 w-64 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top-right">
               
-              {/* GÜNCELLENEN KISIM: Kullanıcı Header Kısmı ve Mini XP Barı */}
+              {/* Kullanıcı Header Kısmı ve Mini XP Barı */}
               <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 bg-gradient-to-br from-slate-50 to-white dark:from-[#1e293b]/40 dark:to-[#0f172a]/40">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-black shadow-lg">
@@ -91,11 +91,17 @@ const Navbar = ({ notificationCount = 0 }) => {
                 </div>
               </div>
 
-              {/* Menü Seçenekleri (Değişmedi) */}
+              {/* Menü Seçenekleri */}
               <div className="p-3 space-y-1">
                 <button onClick={() => { navigate('/profile?tab=stats'); setIsDropdownOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all group">
                   <span className="text-lg group-hover:scale-110 group-hover:-rotate-12 transition-transform">👤</span> 
                   Profilim
+                </button>
+
+                {/* YENİ EKLENEN İSTATİSTİKLER BUTONU */}
+                <button onClick={() => { navigate('/statistics'); setIsDropdownOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all group">
+                  <span className="text-lg group-hover:scale-110 group-hover:rotate-12 transition-transform">📊</span> 
+                  İstatistikler
                 </button>
                 
                 <button onClick={() => { navigate('/profile?tab=friends'); setIsDropdownOpen(false); }} className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all group">
@@ -122,7 +128,6 @@ const Navbar = ({ notificationCount = 0 }) => {
                 </button>
               </div>
 
-              {/* Çıkış Yap Kısmı */}
               <div className="p-3 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/20">
                 <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-rose-500 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-xl transition-all group">
                   <span className="text-lg group-hover:translate-x-1 transition-transform">🚪</span> 

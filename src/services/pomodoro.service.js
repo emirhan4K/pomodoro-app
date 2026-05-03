@@ -93,6 +93,78 @@ class PomodoroService {
     const pomodoros = await this.pomodoroRepository.getUserHistory(userId);
     return pomodoros.map((pomodoro) => PomodoroMapper.toResponse(pomodoro));
   }
+  async getDailyDashboardStats(userId) {
+    const cleanId = userId && typeof userId === "object" ? userId.id || userId._id || userId.user : userId;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const todaySessions = await this.pomodoroRepository.model.find({
+      user: cleanId,
+      createdAt: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    const completedSessions = todaySessions.filter(s => s.status === "completed");
+    const todayFocusMinutes = completedSessions.reduce((acc, curr) => acc + curr.duration, 0);
+    const todayFocusHours = (todayFocusMinutes / 60).toFixed(1);
+
+    const totalAttempted = todaySessions.filter(s => s.status === "completed" || s.status === "cancelled").length;
+    const efficiency = totalAttempted === 0 ? 0 : Math.round((completedSessions.length / totalAttempted) * 100);
+
+    const categoryMap = {};
+    completedSessions.forEach(s => {
+      const cat = s.category || "Diğer";
+      categoryMap[cat] = (categoryMap[cat] || 0) + s.duration;
+    });
+
+    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
+    const categoryData = Object.keys(categoryMap).map((key, index) => ({
+      name: key,
+      value: categoryMap[key],
+      color: colors[index % colors.length]
+    }));
+
+    const hourlyMap = {};
+    for (let i = 8; i <= 23; i++) {
+      hourlyMap[`${i.toString().padStart(2, "0")}:00`] = 0;
+    }
+
+    completedSessions.forEach(s => {
+      const hour = new Date(s.createdAt).getHours();
+      const hourKey = `${hour.toString().padStart(2, "0")}:00`;
+      if (hourlyMap[hourKey] !== undefined) {
+        hourlyMap[hourKey] += s.duration;
+      } else {
+        hourlyMap[hourKey] = s.duration;
+      }
+    });
+
+    const hourlyData = Object.keys(hourlyMap).map(key => ({
+      time: key,
+      duration: hourlyMap[key]
+    }));
+
+    const recentSessions = [...todaySessions]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 4)
+      .map(s => ({
+        id: s._id,
+        category: s.category || "Diğer",
+        time: new Date(s.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }),
+        duration: `${s.duration} dk`,
+        status: s.status === "completed" ? "Tamamlandı" : (s.status === "cancelled" ? "İptal" : s.status)
+      }));
+
+    return {
+      todayFocusHours,
+      todaySessionsCount: completedSessions.length,
+      efficiency,
+      categoryData: categoryData.length > 0 ? categoryData : [{ name: "Veri Yok", value: 1, color: "#334155" }],
+      hourlyData,
+      recentSessions
+    };
+  }
 }
 
 module.exports = PomodoroService;

@@ -38,6 +38,15 @@ class PomodoroController {
       next(error);
     }
   }
+  getDailyStats = async (req, res, next) =>{
+    try {
+      const userId = req.user.id || req.user._id; 
+      const stats = await this.pomodoroService.getDailyDashboardStats(userId);
+      res.status(200).json(stats);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = PomodoroController;

@@ -8,5 +8,9 @@ router.use(authMiddleware);
 router.post('/', pomodoroController.startSession);
 router.patch('/:id/status', pomodoroController.updateStatus);
 router.get('/', pomodoroController.getHistory);
+router.get(
+  "/daily-stats",
+  pomodoroController.getDailyStats.bind(pomodoroController)
+);
 
 module.exports = router;
