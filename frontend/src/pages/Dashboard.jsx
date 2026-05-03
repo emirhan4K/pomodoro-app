@@ -1,49 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Navbar from '../components/Navbar';
-import { PomodoroService } from '../services/api.services';
-import { useAuth } from '../context/AuthContext';
+import { usePomodoro } from '../context/PomodoroContext';
 
-const Dashboard = ({ profile, notificationCount, onComplete }) => {
-  // Varsayılan süre: 25 dakika
-  const [selectedMinutes, setSelectedMinutes] = useState(25);
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(false);
-  
-  // BACKEND ENTEGRASYONU: Oturum ID'si ve Profil güncelleme fonksiyonu
-  const [sessionId, setSessionId] = useState(null);
-  const { fetchProfile } = useAuth();
+const Dashboard = ({ profile, notificationCount }) => {
+  // Her şeyi Context'ten çekiyoruz
+  const { 
+    timeLeft, isActive, selectedMinutes, 
+    toggleTimer, handleReset, handleDurationSelect 
+  } = usePomodoro();
 
-  // Dairenin çevresi
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
-  // İlerleme yüzdesi artık dinamik
   const progress = ((selectedMinutes * 60 - timeLeft) / (selectedMinutes * 60)) * circumference;
-
-  useEffect(() => {
-    let interval = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    } else if (timeLeft === 0 && isActive) {
-      clearInterval(interval);
-      setIsActive(false);
-      
-      // SÜRE BİTTİ: Backend'e bildir ve XP kazan!
-      if (sessionId) {
-        PomodoroService.updateStatus(sessionId, "completed")
-          .then(() => {
-            setSessionId(null);
-            if (fetchProfile) fetchProfile(); // XP'yi ekranda güncelle
-            if (onComplete) onComplete();
-          })
-          .catch(console.error);
-      } else {
-        if (onComplete) onComplete();
-      }
-    } else {
-      clearInterval(interval);
-    }
-    return () => clearInterval(interval);
-  }, [isActive, timeLeft, sessionId, onComplete, fetchProfile]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -51,51 +19,7 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleDurationSelect = async (mins) => {
-    // Eğer çalışan bir sayaç varsa ve süre değiştiriliyorsa oturumu iptal et
-    if (sessionId) {
-      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
-      setSessionId(null);
-    }
-    setSelectedMinutes(mins);
-    setTimeLeft(mins * 60);
-    setIsActive(false);
-  };
-
-  // BAŞLAT / DURAKLAT MANTIĞI
-  const toggleTimer = async () => {
-    if (!isActive) {
-      setIsActive(true);
-      if (!sessionId) {
-        // İlk kez başlatılıyor
-        try {
-          const res = await PomodoroService.startSession(selectedMinutes, "Genel");
-          setSessionId(res.data.newSession._id || res.data.newSession.id);
-        } catch (e) { console.error(e); }
-      } else {
-        // Duraklatıldıktan sonra devam ediliyor
-        try { await PomodoroService.updateStatus(sessionId, "running"); } catch(e){}
-      }
-    } else {
-      // Duraklatılıyor
-      setIsActive(false);
-      if (sessionId) {
-        try { await PomodoroService.updateStatus(sessionId, "paused"); } catch(e){}
-      }
-    }
-  };
-
-  // SIFIRLA MANTIĞI
-  const handleReset = async () => {
-    if (sessionId) {
-      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
-      setSessionId(null);
-    }
-    setTimeLeft(selectedMinutes * 60);
-    setIsActive(false);
-  };
-
-  const durations = [25, 30, 45, 60, 90];
+  const durations = [7, 30, 45, 60, 90];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 pb-12 font-sans">
@@ -104,7 +28,7 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
 
         <div className="flex flex-col items-center justify-center mt-16">
           
-          {/* SÜRE SEÇİCİ (MODERN PİLL TASARIMI) */}
+          {/* SÜRE SEÇİCİ */}
           <div className="flex items-center gap-1 sm:gap-2 mb-12 p-1.5 bg-slate-200/50 dark:bg-[#1e293b]/60 backdrop-blur-xl rounded-2xl border border-slate-300/50 dark:border-slate-800/80 shadow-inner">
             {durations.map((mins) => (
               <button
