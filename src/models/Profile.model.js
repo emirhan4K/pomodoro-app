@@ -30,6 +30,18 @@ const profileSchema = new mongoose.Schema({
   level:{
     type:Number,
     default:1
+  },
+  currentStreak:{ //mevcut streak
+    type:Number,
+    default:0
+  },
+  bestStreak:{ //en iyi streak
+    type:Number,
+    default:0
+  },
+  lastSessionDate:{ //sonOturumTarihi
+    type:Date,
+    default:null
   }
 }, { timestamps: true });
 

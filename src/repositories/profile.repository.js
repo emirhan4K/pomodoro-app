@@ -6,11 +6,11 @@ class ProfileRepository extends BaseRepository {
     super(Profile);
   }
 
- async updateStats(userId, duration) {
+ async updateStats(userId, duration,currentStreak,bestStreak,lastSessionDate) {
     const id = userId?.user || userId?.id || userId;
     return await this.model.findOneAndUpdate(
       { user: id },
-      { $inc: { totalPomodoros: 1, totalWorkTime: duration } },
+      { $inc: { totalPomodoros: 1, totalWorkTime: duration },$set: {currentStreak,bestStreak,lastSessionDate} },
       { new: true, upsert: true }
     );
   }
