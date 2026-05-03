@@ -24,7 +24,7 @@ const Statistics = () => {
       try {
         setLoading(true);
         // Backend'de yeni yazdığımız rotaya istek atıyoruz
-        const response = await api.get('/pomodoro/daily-stats');
+        const response = await api.get('/pomodoros/daily-stats');
         setStats(response.data);
       } catch (error) {
         console.error("İstatistikler çekilirken hata:", error);

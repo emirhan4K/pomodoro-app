@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // PORTAL ÖZELLİĞİNİ EKLEDİK
 import Confetti from 'react-confetti';
 
 const CongratulationsModal = ({ onClose, duration }) => {
@@ -7,7 +8,6 @@ const CongratulationsModal = ({ onClose, duration }) => {
     height: window.innerHeight,
   });
 
-  // Ekran boyutu değişirse konfetiyi ona göre ayarla
   useEffect(() => {
     const detectSize = () => {
       setWindowDimension({
@@ -19,20 +19,20 @@ const CongratulationsModal = ({ onClose, duration }) => {
     return () => window.removeEventListener('resize', detectSize);
   }, []);
 
-  return (
-    // Arka planı hafif bulanıklaştıran karanlık katman
-    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm">
+  // Modalı document.body içine ışınlıyoruz!
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
       
-      {/* Konfeti Animasyonu (recycle={false} yaparsak 1 kere patlar ve durur) */}
+      {/* Konfeti Animasyonu */}
       <Confetti
         width={windowDimension.width}
         height={windowDimension.height}
         recycle={false}
-        numberOfPieces={500}
+        numberOfPieces={600}
         gravity={0.15}
       />
 
-      {/* Ortadaki Şık Tebrik Kartı */}
+      {/* Tebrik Kartı */}
       <div className="bg-white dark:bg-slate-800 p-8 rounded-[2rem] shadow-2xl text-center z-10 max-w-sm mx-4 transform animate-in zoom-in duration-300 border border-slate-100 dark:border-slate-700">
         <div className="text-7xl mb-4 animate-bounce">🎉</div>
         <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">
@@ -49,7 +49,8 @@ const CongratulationsModal = ({ onClose, duration }) => {
           TAMAM
         </button>
       </div>
-    </div>
+    </div>,
+    document.body 
   );
 };
 
