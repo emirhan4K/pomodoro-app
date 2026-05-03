@@ -47,40 +47,34 @@ class PomodoroService {
       userId && typeof userId === "object"
         ? userId.id || userId._id || userId.user
         : userId;
+    let updatedProfile = null;
 
     if (status === "completed") {
       await this.statisticRepository.incrementStats(cleanId, session.duration);
 
       if (this.profileRepository) {
         const profile = await this.profileRepository.findByUserId(cleanId);
-        console.log("✅ Profil bulundu:", {
-          found: !!profile,
-          currentStreak: profile?.currentStreak,
-          bestStreak: profile?.bestStreak,
-        });
-
-        const streakCalc = await this.streakService.calculateStreak(
-          profile?.currentStreak || 0,
-          profile?.bestStreak || 0,
-          profile?.lastSessionDate || null,
-        );
-        console.log("✅ Streak hesaplandı:", streakCalc);
-
-        const updated = await this.profileRepository.updateStats(
+        const { currentStreak, bestStreak, lastSessionDate } =
+          await this.streakService.calculateStreak(
+            profile?.currentStreak || 0,
+            profile?.bestStreak || 0,
+            profile?.lastSessionDate || null,
+          );
+        await this.profileRepository.updateStats(
           cleanId,
           session.duration,
-          streakCalc.currentStreak,
-          streakCalc.bestStreak,
-          streakCalc.lastSessionDate,
+          currentStreak,
+          bestStreak,
+          lastSessionDate,
         );
-        console.log("✅ Profil güncellendi:", {
-          currentStreak: updated?.currentStreak,
-          bestStreak: updated?.bestStreak,
-        });
       }
       await this.profileService.gainXp(cleanId, session.duration);
+      updatedProfile = await this.profileService.getUserProfile(cleanId);
     }
-    return { updatedSession: PomodoroMapper.toResponse(updatedSession) };
+    return {
+      updatedSession: PomodoroMapper.toResponse(updatedSession),
+      updatedProfile,
+    };
   }
   async getUserHistory(userId) {
     //Geçmiş pomodoroları getir
