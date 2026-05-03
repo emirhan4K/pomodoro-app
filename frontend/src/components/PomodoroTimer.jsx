@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { PomodoroService } from "../services/api.services";
 import { useAuth } from "../context/AuthContext";
+import CongratulationsModal from '../components/CongratulationsModal';
 
 const PomodoroTimer = ({ onComplete }) => {
   const [workDuration, setWorkDuration] = useState(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [isWorkMode, setIsWorkMode] = useState(true);
+  
+  // Konfeti modalını yönetecek state
+  const [showCongrats, setShowCongrats] = useState(false);
 
   // BACKEND ENTEGRASYONU
   const [sessionId, setSessionId] = useState(null);
@@ -37,14 +41,16 @@ const PomodoroTimer = ({ onComplete }) => {
         // Profili güncelle - seri bilgilerini al
         await fetchProfile();
         if (onComplete) onComplete();
-        alert(
-          `Tebrikler! ${workDuration} dakikalık harika bir seansı tamamladın!`,
-        );
+        
+        // DÜZELTME: Sıkıcı alert yerine şık modalı açıyoruz
+        setShowCongrats(true);
+        
       } catch (error) {
         console.error("Tamamlanırken hata oluştu:", error);
       }
     } else {
-      alert("Mola bitti!");
+      // Mola bitince standart bir uyarı verebiliriz veya istersen buna da ses ekleyebilirsin
+      alert("Mola bitti! Yeni bir seansa hazır mısın?");
     }
     switchMode();
   };
@@ -210,6 +216,12 @@ const PomodoroTimer = ({ onComplete }) => {
           </svg>
         </button>
       </div>
+      {showCongrats && (
+        <CongratulationsModal 
+          onClose={() => setShowCongrats(false)} 
+          duration={workDuration} 
+        />
+      )}
     </div>
   );
 };
