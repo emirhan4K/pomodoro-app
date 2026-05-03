@@ -8,7 +8,7 @@ class PomodoroService {
     statisticRepository,
     profileRepository,
     profileService,
-    streakService
+    streakService,
   }) {
     this.pomodoroRepository = pomodoroRepository;
     this.statisticRepository = statisticRepository;
@@ -16,7 +16,8 @@ class PomodoroService {
     this.profileRepository = profileRepository;
     this.streakService = streakService;
   }
-  async createSession(userId, bodyData) { //Pomodoro oluştur
+  async createSession(userId, bodyData) {
+    //Pomodoro oluştur
     const { category, duration } = bodyData;
 
     const newSession = await this.pomodoroRepository.create({
@@ -26,7 +27,8 @@ class PomodoroService {
     });
     return { newSession: PomodoroMapper.toResponse(newSession) };
   }
-  async updateSessionStatus(sessionId, userId, status) { //Pomodoro durumunu güncelle
+  async updateSessionStatus(sessionId, userId, status) {
+    //Pomodoro durumunu güncelle
     const allowedStatuses = ["running", "paused", "completed", "cancelled"];
     if (!allowedStatuses.includes(status)) {
       throw new BadRequestException("Geçersiz Pomodoro durumu!");
@@ -41,26 +43,40 @@ class PomodoroService {
     const updatedSession = await this.pomodoroRepository.update(sessionId, {
       status,
     });
-    const cleanId = userId?.user || userId?.id || userId;
+    const cleanId =
+      userId && typeof userId === "object"
+        ? userId.id || userId._id || userId.user
+        : userId;
 
     if (status === "completed") {
-      // Orijinal istatistik güncelleme kodun (Aynen kaldı)
       await this.statisticRepository.incrementStats(cleanId, session.duration);
-      
+
       if (this.profileRepository) {
         const profile = await this.profileRepository.findByUserId(cleanId);
-        const { currentStreak, bestStreak, lastSessionDate } = await this.streakService.calculateStreak(
-            profile?.currentStreak || 0,
-            profile?.bestStreak || 0,
-            profile?.lastSessionDate || null
+        console.log("✅ Profil bulundu:", {
+          found: !!profile,
+          currentStreak: profile?.currentStreak,
+          bestStreak: profile?.bestStreak,
+        });
+
+        const streakCalc = await this.streakService.calculateStreak(
+          profile?.currentStreak || 0,
+          profile?.bestStreak || 0,
+          profile?.lastSessionDate || null,
         );
-        await this.profileRepository.updateStats(
-            cleanId, 
-            session.duration,
-            currentStreak,
-            bestStreak,
-            lastSessionDate
+        console.log("✅ Streak hesaplandı:", streakCalc);
+
+        const updated = await this.profileRepository.updateStats(
+          cleanId,
+          session.duration,
+          streakCalc.currentStreak,
+          streakCalc.bestStreak,
+          streakCalc.lastSessionDate,
         );
+        console.log("✅ Profil güncellendi:", {
+          currentStreak: updated?.currentStreak,
+          bestStreak: updated?.bestStreak,
+        });
       }
       await this.profileService.gainXp(cleanId, session.duration);
     }

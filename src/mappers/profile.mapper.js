@@ -10,6 +10,11 @@ class ProfileMapper {
         totalPomodoros: stats ? stats.totalPomodoros : 0,
         totalWorkTime: stats ? (stats.totalWorkTime / 60).toFixed(1) : 0,
       },
+      streak: {
+        currentStreak: stats ? stats.currentStreak : 0,
+        bestStreak: stats ? stats.bestStreak : 0,
+        lastSessionDate: stats ? stats.lastSessionDate : null,
+      },
     };
   }
 }

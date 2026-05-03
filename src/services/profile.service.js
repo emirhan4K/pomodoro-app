@@ -11,15 +11,18 @@ class ProfileService {
     const user = await this.userRepository.findById(userId);
     let profile = await this.profileRepository.findByUserId(userId);
     if (!profile) {
-        profile = {
-            xp: 0,
-            level: 1,
-            totalPomodoros: 0,
-            totalWorkTime: 0
-        };
+      profile = {
+        xp: 0,
+        level: 1,
+        totalPomodoros: 0,
+        totalWorkTime: 0,
+        currentStreak: 0,
+        bestStreak: 0,
+        lastSessionDate: null,
+      };
     }
     return ProfileMapper.toResponse(user, profile);
-}
+  }
   async handleCompletedPomodoro(userId, duration) {
     return await this.profileRepository.updateStats(userId, duration);
   }
@@ -34,8 +37,9 @@ class ProfileService {
     return ProfileMapper.toResponse(user, profile);
   }
   async gainXp(userId, earnedXp) {
-    const cleanId = userId?.user || userId?.id || userId;
-    const profile = await this.profileRepository.findByUserId({ user: userId });
+    const cleanId = userId?.id || userId?._id || userId;
+    let profile = await this.profileRepository.findByUserId(cleanId);
+
     if (!profile) {
       profile = await this.profileRepository.create({
         user: cleanId,
@@ -43,6 +47,9 @@ class ProfileService {
         level: 1,
         totalPomodoros: 0,
         totalWorkTime: 0,
+        currentStreak: 0,
+        bestStreak: 0,
+        lastSessionDate: null,
       });
     }
     let xp = profile.xp + earnedXp;

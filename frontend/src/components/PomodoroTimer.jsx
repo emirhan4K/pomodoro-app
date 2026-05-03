@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { PomodoroService } from '../services/api.services';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from "react";
+import { PomodoroService } from "../services/api.services";
+import { useAuth } from "../context/AuthContext";
 
 const PomodoroTimer = ({ onComplete }) => {
   const [workDuration, setWorkDuration] = useState(25);
@@ -21,7 +21,7 @@ const PomodoroTimer = ({ onComplete }) => {
     } else if (timeLeft === 0 && isActive) {
       clearInterval(interval);
       setIsActive(false);
-      handleTimerComplete(); 
+      handleTimerComplete();
     }
     return () => clearInterval(interval);
   }, [isActive, timeLeft]);
@@ -34,22 +34,25 @@ const PomodoroTimer = ({ onComplete }) => {
           await PomodoroService.updateStatus(sessionId, "completed");
           setSessionId(null);
         }
-        if (fetchProfile) fetchProfile(); // Ekranda XP'yi güncelle
-        if (onComplete) onComplete(); 
-        alert(`Tebrikler! ${workDuration} dakikalık harika bir seansı tamamladın!`);
+        // Profili güncelle - seri bilgilerini al
+        await fetchProfile();
+        if (onComplete) onComplete();
+        alert(
+          `Tebrikler! ${workDuration} dakikalık harika bir seansı tamamladın!`,
+        );
       } catch (error) {
         console.error("Tamamlanırken hata oluştu:", error);
       }
     } else {
       alert("Mola bitti!");
     }
-    switchMode(); 
+    switchMode();
   };
 
   const formatTime = (seconds) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+    return `${minutes < 10 ? "0" : ""}${minutes}:${remainingSeconds < 10 ? "0" : ""}${remainingSeconds}`;
   };
 
   // BAŞLAT / DURAKLAT MANTIĞI
@@ -60,17 +63,26 @@ const PomodoroTimer = ({ onComplete }) => {
       if (isWorkMode) {
         if (!sessionId) {
           try {
-            const res = await PomodoroService.startSession(workDuration, "Genel");
+            const res = await PomodoroService.startSession(
+              workDuration,
+              "Genel",
+            );
             setSessionId(res.data.newSession._id || res.data.newSession.id);
-          } catch(e) { console.error(e); }
+          } catch (e) {
+            console.error(e);
+          }
         } else {
-          try { await PomodoroService.updateStatus(sessionId, "running"); } catch(e){}
+          try {
+            await PomodoroService.updateStatus(sessionId, "running");
+          } catch (e) {}
         }
       }
     } else {
       setIsActive(false);
       if (isWorkMode && sessionId) {
-        try { await PomodoroService.updateStatus(sessionId, "paused"); } catch(e){}
+        try {
+          await PomodoroService.updateStatus(sessionId, "paused");
+        } catch (e) {}
       }
     }
   };
@@ -80,7 +92,9 @@ const PomodoroTimer = ({ onComplete }) => {
     setIsActive(false);
     setTimeLeft(isWorkMode ? workDuration * 60 : 5 * 60);
     if (isWorkMode && sessionId) {
-      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      try {
+        await PomodoroService.updateStatus(sessionId, "cancelled");
+      } catch (e) {}
       setSessionId(null);
     }
   };
@@ -88,7 +102,9 @@ const PomodoroTimer = ({ onComplete }) => {
   // SÜRE SEÇİM MANTIĞI
   const handleTimeSelect = async (time) => {
     if (isWorkMode && sessionId) {
-      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      try {
+        await PomodoroService.updateStatus(sessionId, "cancelled");
+      } catch (e) {}
       setSessionId(null);
     }
     setWorkDuration(time);
@@ -103,7 +119,9 @@ const PomodoroTimer = ({ onComplete }) => {
     setIsActive(false);
     if (isWorkMode && sessionId) {
       // Çalışmadan direkt molaya geçiyorsa mevcut oturumu iptal edelim
-      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      try {
+        await PomodoroService.updateStatus(sessionId, "cancelled");
+      } catch (e) {}
       setSessionId(null);
     }
 
@@ -118,7 +136,6 @@ const PomodoroTimer = ({ onComplete }) => {
 
   return (
     <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm dark:shadow-2xl border border-slate-100 dark:border-slate-800 p-10 flex flex-col items-center justify-center min-h-[600px] relative overflow-hidden transition-colors duration-500">
-      
       <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
 
       <div className="mb-10 flex flex-wrap justify-center gap-3 relative z-10">
@@ -128,45 +145,68 @@ const PomodoroTimer = ({ onComplete }) => {
             onClick={() => handleTimeSelect(time)}
             disabled={isActive}
             className={`px-5 py-2.5 rounded-2xl font-bold text-sm transition-all duration-300 ${
-              workDuration === time 
-                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/50 scale-105' 
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            } ${isActive ? 'opacity-50 cursor-not-allowed' : ''}`}
+              workDuration === time
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/50 scale-105"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+            } ${isActive ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {time} dk
           </button>
         ))}
       </div>
 
-      <div className={`w-72 h-72 rounded-full border-[12px] flex items-center justify-center mb-12 shadow-inner transition-colors duration-500 relative z-10 ${
-        isWorkMode 
-          ? 'border-indigo-50 dark:border-indigo-900/20 bg-white dark:bg-slate-900' 
-          : 'border-emerald-50 dark:border-emerald-900/20 bg-white dark:bg-slate-900'
-      }`}>
-        <span className={`text-7xl font-black tracking-tighter ${isWorkMode ? 'text-slate-800 dark:text-white' : 'text-emerald-600 dark:text-emerald-400'}`}>
+      <div
+        className={`w-72 h-72 rounded-full border-[12px] flex items-center justify-center mb-12 shadow-inner transition-colors duration-500 relative z-10 ${
+          isWorkMode
+            ? "border-indigo-50 dark:border-indigo-900/20 bg-white dark:bg-slate-900"
+            : "border-emerald-50 dark:border-emerald-900/20 bg-white dark:bg-slate-900"
+        }`}
+      >
+        <span
+          className={`text-7xl font-black tracking-tighter ${isWorkMode ? "text-slate-800 dark:text-white" : "text-emerald-600 dark:text-emerald-400"}`}
+        >
           {formatTime(timeLeft)}
         </span>
       </div>
 
       <div className="flex items-center gap-4 relative z-10">
-        <button onClick={switchMode} className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-2xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition text-md">
-          {isWorkMode ? '☕ Mola Ver' : '💻 Çalışmaya Dön'}
+        <button
+          onClick={switchMode}
+          className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-6 py-4 rounded-2xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition text-md"
+        >
+          {isWorkMode ? "☕ Mola Ver" : "💻 Çalışmaya Dön"}
         </button>
-        
-        <button onClick={toggleTimer} className={`text-white px-10 py-4 rounded-2xl font-bold transition-all duration-300 shadow-xl text-lg flex items-center gap-2 ${
-          isActive 
-            ? 'bg-rose-500 hover:bg-rose-600 shadow-rose-200 dark:shadow-none' 
-            : isWorkMode 
-              ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none' 
-              : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200 dark:shadow-none'
-        }`}>
-          {isActive ? '⏸ Duraklat' : '▶ Başla'}
-        </button>
-        
 
-        <button onClick={handleReset} className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 p-4 rounded-2xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition shadow-sm group">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:-rotate-180 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <button
+          onClick={toggleTimer}
+          className={`text-white px-10 py-4 rounded-2xl font-bold transition-all duration-300 shadow-xl text-lg flex items-center gap-2 ${
+            isActive
+              ? "bg-rose-500 hover:bg-rose-600 shadow-rose-200 dark:shadow-none"
+              : isWorkMode
+                ? "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 dark:shadow-none"
+                : "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-200 dark:shadow-none"
+          }`}
+        >
+          {isActive ? "⏸ Duraklat" : "▶ Başla"}
+        </button>
+
+        <button
+          onClick={handleReset}
+          className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 p-4 rounded-2xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition shadow-sm group"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 group-hover:-rotate-180 transition-transform duration-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2.5}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
           </svg>
         </button>
       </div>

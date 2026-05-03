@@ -6,20 +6,38 @@ class ProfileRepository extends BaseRepository {
     super(Profile);
   }
 
- async updateStats(userId, duration,currentStreak,bestStreak,lastSessionDate) {
-    const id = userId?.user || userId?.id || userId;
+  async updateStats(
+    userId,
+    duration,
+    currentStreak,
+    bestStreak,
+    lastSessionDate,
+  ) {
+    const id = userId?.toString() || userId;
+    const addedHours = Number(duration) / 60;
+
     return await this.model.findOneAndUpdate(
       { user: id },
-      { $inc: { totalPomodoros: 1, totalWorkTime: duration },$set: {currentStreak,bestStreak,lastSessionDate} },
-      { new: true, upsert: true }
+      {
+        $inc: {
+          totalPomodoros: 1,
+          totalWorkTime: addedHours,
+        },
+        $set: {
+          currentStreak: Number(currentStreak),
+          bestStreak: Number(bestStreak),
+          lastSessionDate: lastSessionDate,
+        },
+      },
+      { new: true, upsert: true },
     );
   }
 
   async findByUserId(userId) {
     const id = userId?.user || userId?.id || userId;
-    if (!id || typeof id === 'object') return null;
+    if (!id) return null;
     return await this.model.findOne({ user: id });
-}
+  }
 }
 
 module.exports = ProfileRepository;
