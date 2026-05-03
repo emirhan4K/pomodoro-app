@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
+import { PomodoroService } from '../services/api.services';
+import { useAuth } from '../context/AuthContext';
 
 const PomodoroTimer = ({ onComplete }) => {
   const [workDuration, setWorkDuration] = useState(25);
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [isWorkMode, setIsWorkMode] = useState(true);
+
+  // BACKEND ENTEGRASYONU
+  const [sessionId, setSessionId] = useState(null);
+  const { fetchProfile } = useAuth();
 
   const timeOptions = [25, 30, 45, 60, 90];
 
@@ -24,10 +29,17 @@ const PomodoroTimer = ({ onComplete }) => {
   const handleTimerComplete = async () => {
     if (isWorkMode) {
       try {
-        await api.post('/pomodoros', { duration: workDuration }); 
+        if (sessionId) {
+          // Backend'de başarıyla bitir ve XP'leri kaydet
+          await PomodoroService.updateStatus(sessionId, "completed");
+          setSessionId(null);
+        }
+        if (fetchProfile) fetchProfile(); // Ekranda XP'yi güncelle
         if (onComplete) onComplete(); 
         alert(`Tebrikler! ${workDuration} dakikalık harika bir seansı tamamladın!`);
-      } catch (error) {}
+      } catch (error) {
+        console.error("Tamamlanırken hata oluştu:", error);
+      }
     } else {
       alert("Mola bitti!");
     }
@@ -40,14 +52,45 @@ const PomodoroTimer = ({ onComplete }) => {
     return `${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
-  const toggleTimer = () => setIsActive(!isActive);
-
-  const handleReset = () => {
-    setIsActive(false);
-    setTimeLeft(isWorkMode ? workDuration * 60 : 5 * 60);
+  // BAŞLAT / DURAKLAT MANTIĞI
+  const toggleTimer = async () => {
+    if (!isActive) {
+      setIsActive(true);
+      // Sadece Çalışma Modunda isek veritabanına kayıt atıyoruz (Mola'da XP yok)
+      if (isWorkMode) {
+        if (!sessionId) {
+          try {
+            const res = await PomodoroService.startSession(workDuration, "Genel");
+            setSessionId(res.data.newSession._id || res.data.newSession.id);
+          } catch(e) { console.error(e); }
+        } else {
+          try { await PomodoroService.updateStatus(sessionId, "running"); } catch(e){}
+        }
+      }
+    } else {
+      setIsActive(false);
+      if (isWorkMode && sessionId) {
+        try { await PomodoroService.updateStatus(sessionId, "paused"); } catch(e){}
+      }
+    }
   };
 
-  const handleTimeSelect = (time) => {
+  // SIFIRLA MANTIĞI
+  const handleReset = async () => {
+    setIsActive(false);
+    setTimeLeft(isWorkMode ? workDuration * 60 : 5 * 60);
+    if (isWorkMode && sessionId) {
+      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      setSessionId(null);
+    }
+  };
+
+  // SÜRE SEÇİM MANTIĞI
+  const handleTimeSelect = async (time) => {
+    if (isWorkMode && sessionId) {
+      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      setSessionId(null);
+    }
     setWorkDuration(time);
     if (isWorkMode) {
       setIsActive(false);
@@ -55,11 +98,18 @@ const PomodoroTimer = ({ onComplete }) => {
     }
   };
 
-  const switchMode = () => {
+  // MOD DEĞİŞTİRME (Çalışma <-> Mola)
+  const switchMode = async () => {
     setIsActive(false);
+    if (isWorkMode && sessionId) {
+      // Çalışmadan direkt molaya geçiyorsa mevcut oturumu iptal edelim
+      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      setSessionId(null);
+    }
+
     if (isWorkMode) {
       setIsWorkMode(false);
-      setTimeLeft(5 * 60);
+      setTimeLeft(5 * 60); // 5 dk mola
     } else {
       setIsWorkMode(true);
       setTimeLeft(workDuration * 60);
@@ -112,6 +162,7 @@ const PomodoroTimer = ({ onComplete }) => {
         }`}>
           {isActive ? '⏸ Duraklat' : '▶ Başla'}
         </button>
+        
 
         <button onClick={handleReset} className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 p-4 rounded-2xl font-bold hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-white transition shadow-sm group">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:-rotate-180 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">

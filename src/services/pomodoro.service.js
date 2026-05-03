@@ -3,9 +3,11 @@ const UnauthorizedException = require("../exceptions/UnauthorizedException");
 const PomodoroMapper = require("../mappers/pomodoro.mapper");
 
 class PomodoroService{
-    constructor({pomodoroRepository, statisticRepository }){
+    constructor({pomodoroRepository, statisticRepository,profileRepository, profileService }){
         this.pomodoroRepository = pomodoroRepository;
         this.statisticRepository = statisticRepository;
+        this.profileService = profileService;
+        this.profileRepository = profileRepository;
     }
     async createSession(userId, bodyData){ //Pomodoro oluştur
        const { category, duration } = bodyData;
@@ -32,11 +34,16 @@ class PomodoroService{
         const updatedSession = await this.pomodoroRepository.update(sessionId,{
             status,
         })
+        const cleanId = userId?.user || userId?.id || userId;
         if (status === "completed") {
-        await this.statisticRepository.incrementStats(userId, session.duration);
-        }
-        return {updatedSession:PomodoroMapper.toResponse(updatedSession)};
+      await this.statisticRepository.incrementStats(cleanId, session.duration);
+      if (this.profileRepository) {
+        await this.profileRepository.updateStats(cleanId, session.duration);
+      }
+      await this.profileService.gainXp(cleanId, session.duration);
     }
+    return { updatedSession: PomodoroMapper.toResponse(updatedSession) };
+  }
     async getUserHistory(userId){ //Geçmiş pomodoroları getir
         const pomodoros = await this.pomodoroRepository.getUserHistory(userId);
         return pomodoros.map(pomodoro => PomodoroMapper.toResponse(pomodoro));

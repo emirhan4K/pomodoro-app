@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { PomodoroService } from '../services/api.services';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = ({ profile, notificationCount, onComplete }) => {
   // Varsayılan süre: 25 dakika
@@ -7,26 +9,41 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   
+  // BACKEND ENTEGRASYONU: Oturum ID'si ve Profil güncelleme fonksiyonu
+  const [sessionId, setSessionId] = useState(null);
+  const { fetchProfile } = useAuth();
+
   // Dairenin çevresi
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
-  // İlerleme yüzdesi artık dinamik (seçilen süreye göre hesaplanıyor)
+  // İlerleme yüzdesi artık dinamik
   const progress = ((selectedMinutes * 60 - timeLeft) / (selectedMinutes * 60)) * circumference;
 
   useEffect(() => {
     let interval = null;
     if (isActive && timeLeft > 0) {
       interval = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-    } else if (timeLeft === 0) {
+    } else if (timeLeft === 0 && isActive) {
       clearInterval(interval);
       setIsActive(false);
-      // Süre bittiğinde onComplete fonksiyonunu çağırabilirsin (örn: XP eklemek için)
-      if(onComplete) onComplete();
+      
+      // SÜRE BİTTİ: Backend'e bildir ve XP kazan!
+      if (sessionId) {
+        PomodoroService.updateStatus(sessionId, "completed")
+          .then(() => {
+            setSessionId(null);
+            if (fetchProfile) fetchProfile(); // XP'yi ekranda güncelle
+            if (onComplete) onComplete();
+          })
+          .catch(console.error);
+      } else {
+        if (onComplete) onComplete();
+      }
     } else {
       clearInterval(interval);
     }
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, onComplete]);
+  }, [isActive, timeLeft, sessionId, onComplete, fetchProfile]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -34,10 +51,47 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Yeni süre seçildiğinde sayacı sıfırla ve yeni süreye ayarla
-  const handleDurationSelect = (mins) => {
+  const handleDurationSelect = async (mins) => {
+    // Eğer çalışan bir sayaç varsa ve süre değiştiriliyorsa oturumu iptal et
+    if (sessionId) {
+      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      setSessionId(null);
+    }
     setSelectedMinutes(mins);
     setTimeLeft(mins * 60);
+    setIsActive(false);
+  };
+
+  // BAŞLAT / DURAKLAT MANTIĞI
+  const toggleTimer = async () => {
+    if (!isActive) {
+      setIsActive(true);
+      if (!sessionId) {
+        // İlk kez başlatılıyor
+        try {
+          const res = await PomodoroService.startSession(selectedMinutes, "Genel");
+          setSessionId(res.data.newSession._id || res.data.newSession.id);
+        } catch (e) { console.error(e); }
+      } else {
+        // Duraklatıldıktan sonra devam ediliyor
+        try { await PomodoroService.updateStatus(sessionId, "running"); } catch(e){}
+      }
+    } else {
+      // Duraklatılıyor
+      setIsActive(false);
+      if (sessionId) {
+        try { await PomodoroService.updateStatus(sessionId, "paused"); } catch(e){}
+      }
+    }
+  };
+
+  // SIFIRLA MANTIĞI
+  const handleReset = async () => {
+    if (sessionId) {
+      try { await PomodoroService.updateStatus(sessionId, "cancelled"); } catch(e){}
+      setSessionId(null);
+    }
+    setTimeLeft(selectedMinutes * 60);
     setIsActive(false);
   };
 
@@ -69,7 +123,6 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
 
           {/* POMODORO SAYACI */}
           <div className="relative flex items-center justify-center group">
-            {/* DIŞ HALKA (Progress Ring) */}
             <svg className="w-[300px] h-[300px] transform -rotate-90 drop-shadow-[0_0_15px_rgba(79,70,229,0.2)]">
               <circle
                 cx="150" cy="150" r={radius}
@@ -86,7 +139,6 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
               />
             </svg>
 
-            {/* İÇ ZAMANLAYICI YAZISI */}
             <div className="absolute flex flex-col items-center">
               <span className="text-6xl font-black text-slate-800 dark:text-white tracking-tighter drop-shadow-md">
                 {formatTime(timeLeft)}
@@ -98,7 +150,7 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
           {/* KONTROL BUTONLARI */}
           <div className="flex gap-4 mt-12">
             <button 
-              onClick={() => setIsActive(!isActive)}
+              onClick={toggleTimer}
               className={`px-10 py-4 rounded-2xl font-black text-sm tracking-widest transition-all duration-300 ${
                 isActive 
                   ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20' 
@@ -108,7 +160,7 @@ const Dashboard = ({ profile, notificationCount, onComplete }) => {
               {isActive ? 'DURAKLAT' : 'BAŞLAT'}
             </button>
             <button 
-              onClick={() => { setTimeLeft(selectedMinutes * 60); setIsActive(false); }}
+              onClick={handleReset}
               className="px-10 py-4 bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-sm tracking-widest hover:bg-slate-300 dark:hover:bg-slate-700 transition-all duration-300"
             >
               SIFIRLA

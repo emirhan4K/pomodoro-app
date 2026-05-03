@@ -6,12 +6,14 @@ const container = awilix.createContainer({
 });
 
 container.loadModules(
+  
   [
     '../repositories/*.js', // config klasöründen bir üste (src) çık ve repository'leri bul
     '!../repositories/base.repository.js', // ! Base repository'yi hariç tut
     '../services/*.js',     // Tüm service'leri bul
     '../controllers/*.js'   // Tüm controller'ları bul
   ],
+  
   {
     cwd: __dirname, // Arama işlemini tam olarak bu dosyanın bulunduğu konumdan başlat
     formatName: 'camelCase', // Dosya isimlerini camelCase yap (örn: user.repository.js -> userRepository)
@@ -21,5 +23,6 @@ container.loadModules(
     }
   }
 );
+
 
 module.exports = container;

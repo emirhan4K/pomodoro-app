@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import api from "../services/api";
+import { AuthService } from '../services/api.services';
+import { useAuth } from '../context/AuthContext';
 
 const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState("");
@@ -8,6 +9,9 @@ const Login = ({ onLoginSuccess }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  
+  // AuthContext'ten login fonksiyonumuzu çekiyoruz
+  const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -15,8 +19,12 @@ const Login = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/auth/login", { email, password });
-      localStorage.setItem("token", response.data.token);
+      // api.post yerine oluşturduğumuz AuthService'i kullanıyoruz
+      const response = await AuthService.login({ email, password });
+      
+      // Context içindeki login fonksiyonu hem token'ı kaydeder hem de Profil/XP verisini çeker
+      login(response.data.token);
+      
       if (onLoginSuccess) {
         await onLoginSuccess();
       }

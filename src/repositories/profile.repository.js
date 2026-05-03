@@ -6,17 +6,20 @@ class ProfileRepository extends BaseRepository {
     super(Profile);
   }
 
-  async updateStats(userId, duration) {
+ async updateStats(userId, duration) {
+    const id = userId?.user || userId?.id || userId;
     return await this.model.findOneAndUpdate(
-      { user: userId },
+      { user: id },
       { $inc: { totalPomodoros: 1, totalWorkTime: duration } },
       { new: true, upsert: true }
     );
   }
 
   async findByUserId(userId) {
-    return await this.model.findOne({ user: userId });
-  }
+    const id = userId?.user || userId?.id || userId;
+    if (!id || typeof id === 'object') return null;
+    return await this.model.findOne({ user: id });
+}
 }
 
 module.exports = ProfileRepository;
