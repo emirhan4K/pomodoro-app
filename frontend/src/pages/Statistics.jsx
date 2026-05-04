@@ -8,8 +8,8 @@ const Statistics = () => {
   const [timeRange, setTimeRange] = useState('daily');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    todayFocusHours: 0,
-    todaySessionsCount: 0,
+    focusHours: 0,
+    sessionsCount: 0,
     efficiency: 0,
     categoryData: [],
     hourlyData: [],
@@ -23,9 +23,20 @@ const Statistics = () => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        // Backend'de yeni yazdığımız rotaya istek atıyoruz
-        const response = await api.get('/pomodoros/daily-stats');
-        setStats(response.data);
+        // Hangi sekmedeysek backend'e o endpoint ile gidiyoruz
+        const endpoint = timeRange === 'weekly' ? '/pomodoros/weekly-stats' : '/pomodoros/daily-stats';
+        const response = await api.get(endpoint);
+        const data = response.data;
+
+        // Backend'den gelen günlük ve haftalık değişken isimlerini UI için ortaklaştırıyoruz
+        setStats({
+          focusHours: timeRange === 'weekly' ? (data.weekFocusHours || 0) : (data.todayFocusHours || 0),
+          sessionsCount: timeRange === 'weekly' ? (data.weekTotalAttempted || 0) : (data.todaySessionsCount || 0),
+          efficiency: timeRange === 'weekly' ? (data.weekEfficiency || 0) : (data.efficiency || 0),
+          categoryData: timeRange === 'weekly' ? (data.weekCategoryData || []) : (data.categoryData || []),
+          hourlyData: data.hourlyData || [], // Haftalıkta boş gelebilir, grafiği patlatmaz
+          recentSessions: data.recentSessions || []
+        });
       } catch (error) {
         console.error("İstatistikler çekilirken hata:", error);
       } finally {
@@ -34,9 +45,9 @@ const Statistics = () => {
     };
 
     fetchStats();
-  }, []);
+  }, [timeRange]); // timeRange değiştiğinde otomatik tekrar tetiklenir
 
-  // Bugünün tarihini formatlıyoruz (Örn: Bugün, 3 Mayıs)
+  // Bugünün tarihini formatlıyoruz (Örn: Bugün, 4 Mayıs)
   const todayFormatted = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
 
   // Custom Tooltip for Line Chart
@@ -63,6 +74,9 @@ const Statistics = () => {
     );
   }
 
+  // Dinamik Hedef Hesaplaması (Günlük: 4, Haftalık: 28)
+  const targetSessions = timeRange === 'weekly' ? 28 : 4;
+
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 font-sans">
       {/* Üst Başlık ve Filtreler */}
@@ -81,15 +95,26 @@ const Statistics = () => {
         </div>
         
         <div className="flex bg-slate-800 p-1 rounded-xl text-xs md:text-sm overflow-x-auto w-full md:w-auto">
-          {['Günlük', 'Haftalık', 'Aylık', 'Tüm Zamanlar'].map((tab, idx) => (
+          {[
+            { id: 'daily', label: 'Günlük' },
+            { id: 'weekly', label: 'Haftalık' },
+            { id: 'monthly', label: 'Aylık' },
+            { id: 'all', label: 'Tüm Zamanlar' }
+          ].map((tab) => (
             <button 
-              key={idx}
-              onClick={() => idx === 0 && setTimeRange('daily')} // Şimdilik sadece Günlük aktif
+              key={tab.id}
+              onClick={() => {
+                if (tab.id === 'daily' || tab.id === 'weekly') setTimeRange(tab.id);
+              }}
               className={`px-3 md:px-4 py-2 rounded-lg transition-all whitespace-nowrap ${
-                (idx === 0 && timeRange === 'daily') ? 'bg-slate-700 text-white font-medium shadow' : 'text-slate-400 hover:text-white opacity-50 cursor-not-allowed'
+                timeRange === tab.id 
+                  ? 'bg-slate-700 text-white font-medium shadow' 
+                  : (tab.id === 'monthly' || tab.id === 'all') 
+                    ? 'text-slate-400 hover:text-white opacity-50 cursor-not-allowed' 
+                    : 'text-slate-400 hover:text-white'
               }`}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -107,8 +132,22 @@ const Statistics = () => {
 
       {/* 4'lü Özet Kartları */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
-        <StatCard icon="🕒" title="Bugün Odak" value={stats.todayFocusHours} unit="saat" iconBg="bg-blue-900/50" iconColor="text-blue-400" />
-        <StatCard icon="🎯" title="Oturumlar" value={stats.todaySessionsCount} unit="adet" iconBg="bg-orange-900/50" iconColor="text-orange-400" />
+        <StatCard 
+          icon="🕒" 
+          title={timeRange === 'weekly' ? "Haftalık Odak" : "Bugün Odak"} 
+          value={stats.focusHours} 
+          unit="saat" 
+          iconBg="bg-blue-900/50" 
+          iconColor="text-blue-400" 
+        />
+        <StatCard 
+          icon="🎯" 
+          title={timeRange === 'weekly' ? "Haftalık Oturum" : "Bugünkü Oturum"} 
+          value={stats.sessionsCount} 
+          unit="adet" 
+          iconBg="bg-orange-900/50" 
+          iconColor="text-orange-400" 
+        />
         <StatCard icon="🔥" title="Seri" value={currentStreak} unit="gün" iconBg="bg-red-900/50" iconColor="text-red-400" />
         <StatCard icon="⚡" title="Verimlilik" value={`%${stats.efficiency}`} unit="skor" iconBg="bg-purple-900/50" iconColor="text-purple-400" />
       </div>
@@ -152,7 +191,7 @@ const Statistics = () => {
 
         {/* Pasta Grafik (Kategori Dağılımı) */}
         <div className="bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl p-6 flex flex-col shadow-xl">
-          <h3 className="font-bold mb-2 text-slate-200">Günün Dağılımı</h3>
+          <h3 className="font-bold mb-2 text-slate-200">{timeRange === 'weekly' ? 'Haftalık Dağılım' : 'Günün Dağılımı'}</h3>
           <div className="flex-1 flex flex-col justify-center items-center relative">
              <div className="w-full h-48">
                <ResponsiveContainer width="100%" height="100%">
@@ -190,17 +229,17 @@ const Statistics = () => {
         </div>
       </div>
 
-      {/* Alt Kısım: Son Oturumlar ve Günlük Hedef */}
+      {/* Alt Kısım: Son Oturumlar ve Hedef */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Son Oturumlar Listesi */}
         <div className="lg:col-span-2 bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl p-6 shadow-xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-200">Bugünkü Oturumlar</h3>
+            <h3 className="font-bold text-slate-200">{timeRange === 'weekly' ? 'Bu Haftaki Oturumlar' : 'Bugünkü Oturumlar'}</h3>
             <button className="text-indigo-400 text-sm hover:text-indigo-300 font-medium transition-colors">Tümünü Gör</button>
           </div>
           
           <div className="space-y-3">
-            {stats.recentSessions.length > 0 ? (
+            {stats.recentSessions && stats.recentSessions.length > 0 ? (
               stats.recentSessions.map((session) => (
                 <SessionRow 
                   key={session.id}
@@ -212,13 +251,13 @@ const Statistics = () => {
               ))
             ) : (
               <div className="text-center py-8 border border-dashed border-slate-700/50 rounded-2xl bg-slate-800/20">
-                <p className="text-slate-500 italic text-sm">Bugün henüz bir pomodoro tamamlamadın.</p>
+                <p className="text-slate-500 italic text-sm">Bu zaman aralığında henüz bir pomodoro tamamlamadın.</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Günlük Hedef Kartı */}
+        {/* Hedef Kartı */}
         <div className="bg-gradient-to-br from-[#1e293b]/60 to-[#0f172a]/80 border border-slate-800/80 rounded-3xl p-8 flex flex-col justify-center items-center text-center shadow-xl relative overflow-hidden">
            {/* Arka plan efekti */}
            <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl"></div>
@@ -226,11 +265,13 @@ const Statistics = () => {
            <div className="w-14 h-14 bg-gradient-to-tr from-purple-600 to-indigo-500 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-lg shadow-purple-500/20 z-10">
              ⚡
            </div>
-           <h3 className="font-bold mb-6 text-slate-200 z-10 tracking-wide">Günlük Hedef</h3>
+           <h3 className="font-bold mb-6 text-slate-200 z-10 tracking-wide">
+             {timeRange === 'weekly' ? 'Haftalık Hedef' : 'Günlük Hedef'}
+           </h3>
            
            <div className="text-6xl font-black text-white mb-2 tracking-tighter z-10 flex items-baseline gap-1">
-             {stats.todaySessionsCount}
-             <span className="text-slate-500 text-3xl font-bold">/4</span>
+             {stats.sessionsCount}
+             <span className="text-slate-500 text-3xl font-bold">/{targetSessions}</span>
            </div>
            <p className="text-xs text-slate-400 mb-8 z-10 uppercase tracking-widest font-bold">Pomodoro</p>
            
@@ -238,7 +279,7 @@ const Statistics = () => {
              <div 
                className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 transition-all duration-1000 ease-out" 
                style={{ 
-                 width: `${Math.min((stats.todaySessionsCount / 4) * 100, 100)}%`,
+                 width: `${Math.min((stats.sessionsCount / targetSessions) * 100, 100)}%`,
                  backgroundSize: "200% 100%",
                  animation: "gradientMove 3s ease infinite"
                }}
@@ -246,10 +287,10 @@ const Statistics = () => {
            </div>
            
            <div className="z-10 h-6">
-             {stats.todaySessionsCount >= 4 ? (
+             {stats.sessionsCount >= targetSessions ? (
                <p className="text-xs font-bold text-emerald-400 animate-pulse">🎉 Hedefe ulaşıldı!</p>
              ) : (
-               <p className="text-xs text-slate-500">Hedefe <span className="font-bold text-indigo-400">{Math.max(4 - stats.todaySessionsCount, 0)}</span> pomodoro kaldı.</p>
+               <p className="text-xs text-slate-500">Hedefe <span className="font-bold text-indigo-400">{Math.max(targetSessions - stats.sessionsCount, 0)}</span> pomodoro kaldı.</p>
              )}
            </div>
         </div>
@@ -275,7 +316,7 @@ const StatCard = ({ icon, title, value, unit, iconBg, iconColor }) => (
 );
 
 const SessionRow = ({ category, time, duration, status }) => {
-  const isCompleted = status === "Tamamlandı";
+  const isCompleted = status === "Tamamlandı" || status === "completed"; // İhtiyaten backend'den gelebilecek ham ingilizce kelimeyi de yakaladım
   
   return (
     <div className="flex items-center justify-between p-4 bg-slate-800/30 hover:bg-slate-800/60 rounded-2xl border border-slate-700/30 transition-colors group">

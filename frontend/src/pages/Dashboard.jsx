@@ -3,7 +3,6 @@ import Navbar from '../components/Navbar';
 import { usePomodoro } from '../context/PomodoroContext';
 
 const Dashboard = ({ profile, notificationCount }) => {
-  // Her şeyi Context'ten çekiyoruz
   const { 
     timeLeft, isActive, selectedMinutes, 
     toggleTimer, handleReset, handleDurationSelect 

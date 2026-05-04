@@ -259,12 +259,117 @@ class PomodoroService {
       color: colors[index % colors.length]
     }));
 
+    const daysMap = {};
+    completedWeekSession.forEach(s => {
+      //"Pzt", "Sal" gibi gün ismini alıyoruz
+      const dayName = new Date(s.createdAt).toLocaleDateString('tr-TR', { weekday: 'short' }); 
+      daysMap[dayName] = (daysMap[dayName] || 0) + s.duration;
+    });
+    
+    const hourlyData = Object.keys(daysMap).map(day => ({
+      time: day,
+      duration: daysMap[day]
+    }));
+    // Bu Haftaki Oturumlar Listesi (En son yapılan 5 oturumu alalım)
+    const recentSessions = weekSession
+      .sort((a, b) => b.createdAt - a.createdAt) // Yeniden eskiye sırala
+      .slice(0, 5) // Ekranda çok kalabalık yapmasın, son 5 yeter
+      .map(s => {
+        const date = new Date(s.createdAt);
+        const timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        const dayStr = date.toLocaleDateString('tr-TR', { weekday: 'short' }); 
+        
+        return {
+          id: s._id || s.id,
+          category: s.category || "Diğer",
+          time: `${dayStr} ${timeStr}`,
+          duration: `${s.duration} dk`,
+          status: s.status === "completed" ? "Tamamlandı" : "İptal Edildi"
+        };
+      });
+
     return{
     weekFocusHours,
-    weekEfficiency ,
-    weekCategoryData   
+      weekEfficiency,
+      weekCategoryData,
+      weekTotalAttempted: completedWeekSession.length,
+      hourlyData,
+      recentSessions   
     }
+  }
+  async getMonthlyDashboardStats(userId){
+    const cleanId =
+      userId && typeof userId === "object"
+        ? userId.id || userId._id || userId.user
+        : userId;
 
+    const todayNight = new Date();
+    todayNight.setHours(23, 59, 59, 999);
+
+    const today = new Date();
+
+    const startOfMonthly = new Date(today);
+    startOfMonthly.setDate(1);
+    startOfMonthly.setHours(0, 0, 0, 0);
+
+    const monthlySession = await this.pomodoroRepository.model.find({user:cleanId,createdAt: {$gte:startOfMonthly , $lte: todayNight}});
+
+    const completedMonthlySession = monthlySession.filter(s => s.status === "completed"); 
+    const monthlyFocusMinutes = completedMonthlySession.reduce((acc,curr)=> acc + curr.duration, 0)
+    const monthlyFocusHours = (monthlyFocusMinutes/ 60).toFixed(1);
+    
+    const monthlyTotalAttempted = monthlySession.filter(s => s.status === "completed" || s.status === "cancelled").length;
+    const monthlyEfficiency = monthlyTotalAttempted === 0 ? 0 : Math.round((completedMonthlySession.length / monthlyTotalAttempted) * 100);
+
+    const categoryMap = {};
+    completedMonthlySession.forEach(s => {
+      const cat = s.category || "Diğer";
+      categoryMap[cat] = (categoryMap[cat] || 0) + s.duration;
+    });
+    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
+
+    const monthlyCategoryData = Object.keys(categoryMap).map((key, index) => ({
+      name: key,
+      value: categoryMap[key],
+      color: colors[index % colors.length]
+    }));
+
+   const daysMap = {};
+    completedMonthlySession.forEach(s => {
+      // "3 May", "4 May" gibi formatlıyoruz
+      const dayName = new Date(s.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }); 
+      daysMap[dayName] = (daysMap[dayName] || 0) + s.duration;
+    });
+
+    const hourlyData = Object.keys(daysMap).map(day => ({
+      time: day,
+      duration: daysMap[day]
+    }));
+
+     const recentSessions = monthlySession
+      .sort((a, b) => b.createdAt - a.createdAt) // Yeniden eskiye sırala
+      .slice(0, 5) // Ekranda çok kalabalık yapmasın, son 5 yeter
+      .map(s => {
+        const date = new Date(s.createdAt);
+        const timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        const dayStr = date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+        
+        return {
+          id: s._id || s.id,
+          category: s.category || "Diğer",
+          time: `${dayStr} ${timeStr}`, 
+          duration: `${s.duration} dk`,
+          status: s.status === "completed" ? "Tamamlandı" : "İptal Edildi"
+        };
+      });
+      return{
+      monthlyFocusHours,
+      monthlyEfficiency,
+      monthlyCategoryData,
+      monthlyTotalAttempted: completedMonthlySession.length,
+      hourlyData,
+      recentSessions   
+    }
   }
 }
 
