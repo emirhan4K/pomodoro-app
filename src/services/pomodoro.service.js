@@ -97,15 +97,12 @@ class PomodoroService {
     // 1. KULLANICI KONTROLÜ: userId bir obje mi yoksa düz string mi bak, içinden gerçek ID'yi çıkar
     const cleanId = userId && typeof userId === "object" ? userId.id || userId._id || userId.user : userId;
     
-    // 2. ZAMAN SINIRLARI: Bugünün başlangıcını ayarla (Örn: 03.05.2026 00:00:00)
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     
-    // Bugünü bitişini ayarla (Örn: 03.05.2026 23:59:59)
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // 3. VERİTABANI SORGUSU: Veritabanına git, sadece bu kullanıcıya ait ve "bugün" içinde oluşturulmuş oturumları getir
     const todaySessions = await this.pomodoroRepository.model.find({
       user: cleanId,
       createdAt: { $gte: startOfDay, $lte: endOfDay } // $gte: büyük eşit, $lte: küçük eşit
