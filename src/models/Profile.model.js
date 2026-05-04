@@ -7,6 +7,18 @@ const profileSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  title: {
+    type: String,
+    default: "Yeni Odaklayıcı", 
+  },
+  settings: {
+    focusTime: { type: Number, default: 25 }, //Pomodoro çalışma süresi
+    shortBreak: { type: Number, default: 5 }, //Kısa mola süresi
+    longBreak: { type: Number, default: 15 }, //Uzun mola süresi
+    soundEnabled: { type: Boolean, default: true }, //Alarm sesi açık/kapalı durumu
+    notificationsEnabled: { type: Boolean, default: true }, //Tarayıcı bildirim durumu.
+    tickSoundEnabled: { type: Boolean, default: false }, //Tık-tık saat sesi durumu
+  },
   totalPomodoros: {
     type: Number,
     default: 0
