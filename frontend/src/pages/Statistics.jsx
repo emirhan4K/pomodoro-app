@@ -19,7 +19,7 @@ const Statistics = () => {
 
   const currentStreak = user?.currentStreak || 0;
 
-  // VERİ ÇEKME İŞLEMİ (dateOffset değiştiğinde de tetiklenir)
+  // VERİ ÇEKME İŞLEMİ (dateOffset veya timeRange değiştiğinde tetiklenir)
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -29,34 +29,45 @@ const Statistics = () => {
                            : timeRange === 'weekly' ? '/pomodoros/weekly-stats' 
                            : '/pomodoros/daily-stats';
                            
-        // Backend'e hangi zamanda olduğumuzu iletiyoruz (Backend hazır olduğunda işe yarayacak)
         const endpoint = timeRange === 'all' ? baseEndpoint : `${baseEndpoint}?offset=${dateOffset}`;
-        
         const response = await api.get(endpoint);
         const data = response.data;
         
+        // Çizgi grafiğin tek nokta sorununu çözen hile
+        let finalHourlyData = data.hourlyData || [];
+        if (timeRange === 'all' && finalHourlyData.length === 1) {
+          finalHourlyData = [{ time: 'Başlangıç', duration: 0 }, ...finalHourlyData];
+        }
+        
+        // Verileri sayısal değerlere (Number) zorluyoruz ki hesaplamalar patlamasın
         setStats({
-          focusHours: timeRange === 'all' ? (data.allTimeFocusHours || 0)
-                    : timeRange === 'monthly' ? (data.monthlyFocusHours || 0) 
-                    : timeRange === 'weekly' ? (data.weekFocusHours || 0) 
-                    : (data.todayFocusHours || 0),
+          focusHours: Number(
+            timeRange === 'all' ? (data.allTimeFocusHours || 0)
+            : timeRange === 'monthly' ? (data.monthlyFocusHours || 0) 
+            : timeRange === 'weekly' ? (data.weekFocusHours || 0) 
+            : (data.todayFocusHours || 0)
+          ) || 0,
                     
-          sessionsCount: timeRange === 'all' ? (data.allTimeTotalAttempted || 0)
-                      : timeRange === 'monthly' ? (data.monthlyTotalAttempted || 0) 
-                      : timeRange === 'weekly' ? (data.weekTotalAttempted || 0) 
-                      : (data.todaySessionsCount || 0),
+          sessionsCount: Number(
+            timeRange === 'all' ? (data.allTimeTotalAttempted || 0)
+            : timeRange === 'monthly' ? (data.monthlyTotalAttempted || 0) 
+            : timeRange === 'weekly' ? (data.weekTotalAttempted || 0) 
+            : (data.todaySessionsCount || 0)
+          ) || 0,
                        
-          efficiency: timeRange === 'all' ? (data.allTimeEfficiency || 0)
-                    : timeRange === 'monthly' ? (data.monthlyEfficiency || 0) 
-                    : timeRange === 'weekly' ? (data.weekEfficiency || 0) 
-                    : (data.efficiency || 0),
+          efficiency: Number(
+            timeRange === 'all' ? (data.allTimeEfficiency || 0)
+            : timeRange === 'monthly' ? (data.monthlyEfficiency || 0) 
+            : timeRange === 'weekly' ? (data.weekEfficiency || 0) 
+            : (data.efficiency || 0)
+          ) || 0,
                     
           categoryData: timeRange === 'all' ? (data.allTimeCategoryData || [])
                       : timeRange === 'monthly' ? (data.monthlyCategoryData || []) 
                       : timeRange === 'weekly' ? (data.weekCategoryData || []) 
                       : (data.categoryData || []),
                       
-          hourlyData: data.hourlyData || [],
+          hourlyData: finalHourlyData,
           recentSessions: data.recentSessions || []
         });
       } catch (error) {
@@ -67,7 +78,7 @@ const Statistics = () => {
     };
 
     fetchStats();
-  }, [timeRange, dateOffset]); // Offset değiştiğinde veri yeniden çekilir
+  }, [timeRange, dateOffset]);
 
   // İLERİ - GERİ ZAMAN BUTONLARI FONKSİYONLARI
   const handlePrev = () => setDateOffset(prev => prev - 1);
@@ -128,6 +139,7 @@ const Statistics = () => {
       default: return { focus: 'Bugün Odak', session: 'Bugünkü Oturum', dist: 'Günün Dağılımı', recent: 'Bugünkü Oturumlar', target: 'Günlük Hedef' };
     }
   };
+  
   const labels = getLabels();
 
   return (
@@ -248,7 +260,7 @@ const Statistics = () => {
                   dataKey="duration" 
                   stroke="#8b5cf6" 
                   strokeWidth={3} 
-                  dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 0 }} // Tek nokta görünme fix'i
+                  dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 0 }} 
                   activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#1e293b', strokeWidth: 2 }}
                 />
               </LineChart>
@@ -326,7 +338,6 @@ const Statistics = () => {
 
         {/* Hedef Kartı */}
         <div className="bg-gradient-to-br from-[#1e293b]/60 to-[#0f172a]/80 border border-slate-800/80 rounded-3xl p-8 flex flex-col justify-center items-center text-center shadow-xl relative overflow-hidden">
-           {/* Arka plan efekti */}
            <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl"></div>
            
            <div className="w-14 h-14 bg-gradient-to-tr from-purple-600 to-indigo-500 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-lg shadow-purple-500/20 z-10">

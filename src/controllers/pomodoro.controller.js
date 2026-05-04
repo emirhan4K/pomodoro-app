@@ -38,7 +38,7 @@ class PomodoroController {
       next(error);
     }
   }
-  getDailyStats = async (req, res, next) =>{
+  getDailyDashboardStats = async (req, res, next) =>{
     try {
       const userId = req.user.id || req.user._id;
       const offset = req.query.offset || 0;
@@ -52,7 +52,7 @@ class PomodoroController {
     try {
       const userId = req.user.id || req.user._id;
       const offset = req.query.offset || 0;
-      const stats = await this.pomodoroService.getDailyDashboardStats(userId,offset);
+      const stats = await this.pomodoroService.getWeeklyDashboardStats(userId,offset);
       res.status(200).json(stats)
     } catch (error) {
       next(error);
@@ -62,7 +62,7 @@ class PomodoroController {
     try {
       const userId = req.user.id || req.user._id;
       const offset = req.query.offset || 0;
-      const stats = await this.pomodoroService.getDailyDashboardStats(userId,offset);
+      const stats = await this.pomodoroService.getMonthlyDashboardStats(userId,offset);
       res.status(200).json(stats)
     } catch (error) {
       next(error);

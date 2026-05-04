@@ -5,7 +5,7 @@ const pomodoroController = container.resolve("pomodoroController");
 const authMiddleware = require("../middlewares/auth.middleware");
 router.use(authMiddleware);
 
-router.get("/daily-stats", pomodoroController.getDailyStats);
+router.get("/daily-stats", pomodoroController.getDailyDashboardStats);
 router.get("/weekly-stats", pomodoroController.getWeeklyDashboardStats);
 router.get("/monthly-stats", pomodoroController.getMonthlyDashboardStats);
 router.get("/all-time-stats", pomodoroController.getAllTimeDashboardStats);
