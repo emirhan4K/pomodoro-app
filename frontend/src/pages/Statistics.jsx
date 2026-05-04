@@ -16,25 +16,35 @@ const Statistics = () => {
     recentSessions: []
   });
 
-  // Kullanıcı profili bilgilerinden seriyi çekiyoruz
   const currentStreak = user?.currentStreak || 0;
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        // Hangi sekmedeysek backend'e o endpoint ile gidiyoruz
-        const endpoint = timeRange === 'weekly' ? '/pomodoros/weekly-stats' : '/pomodoros/daily-stats';
+        const endpoint = timeRange === 'monthly' ? '/pomodoros/monthly-stats' 
+                       : timeRange === 'weekly' ? '/pomodoros/weekly-stats' 
+                       : '/pomodoros/daily-stats';
+                       
         const response = await api.get(endpoint);
         const data = response.data;
-
-        // Backend'den gelen günlük ve haftalık değişken isimlerini UI için ortaklaştırıyoruz
         setStats({
-          focusHours: timeRange === 'weekly' ? (data.weekFocusHours || 0) : (data.todayFocusHours || 0),
-          sessionsCount: timeRange === 'weekly' ? (data.weekTotalAttempted || 0) : (data.todaySessionsCount || 0),
-          efficiency: timeRange === 'weekly' ? (data.weekEfficiency || 0) : (data.efficiency || 0),
-          categoryData: timeRange === 'weekly' ? (data.weekCategoryData || []) : (data.categoryData || []),
-          hourlyData: data.hourlyData || [], // Haftalıkta boş gelebilir, grafiği patlatmaz
+          focusHours: timeRange === 'monthly' ? (data.monthlyFocusHours || 0) 
+                    : timeRange === 'weekly' ? (data.weekFocusHours || 0) 
+                    : (data.todayFocusHours || 0),
+                    
+          sessionsCount: timeRange === 'monthly' ? (data.monthlyTotalAttempted || 0) 
+                       : timeRange === 'weekly' ? (data.weekTotalAttempted || 0) 
+                       : (data.todaySessionsCount || 0),
+                       
+          efficiency: timeRange === 'monthly' ? (data.monthlyEfficiency || 0) 
+                    : timeRange === 'weekly' ? (data.weekEfficiency || 0) 
+                    : (data.efficiency || 0),
+                    
+          categoryData: timeRange === 'monthly' ? (data.monthlyCategoryData || []) 
+                      : timeRange === 'weekly' ? (data.weekCategoryData || []) 
+                      : (data.categoryData || []),
+                      
+          hourlyData: data.hourlyData || [],
           recentSessions: data.recentSessions || []
         });
       } catch (error) {
@@ -45,12 +55,10 @@ const Statistics = () => {
     };
 
     fetchStats();
-  }, [timeRange]); // timeRange değiştiğinde otomatik tekrar tetiklenir
+  }, [timeRange]);
 
-  // Bugünün tarihini formatlıyoruz (Örn: Bugün, 4 Mayıs)
   const todayFormatted = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
 
-  // Custom Tooltip for Line Chart
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
@@ -74,8 +82,7 @@ const Statistics = () => {
     );
   }
 
-  // Dinamik Hedef Hesaplaması (Günlük: 4, Haftalık: 28)
-  const targetSessions = timeRange === 'weekly' ? 28 : 4;
+  const targetSessions = timeRange === 'monthly' ? 120 : timeRange === 'weekly' ? 28 : 4;
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 font-sans">
@@ -104,12 +111,12 @@ const Statistics = () => {
             <button 
               key={tab.id}
               onClick={() => {
-                if (tab.id === 'daily' || tab.id === 'weekly') setTimeRange(tab.id);
+                if (tab.id === 'daily' || tab.id === 'weekly' || tab.id === 'monthly') setTimeRange(tab.id);
               }}
               className={`px-3 md:px-4 py-2 rounded-lg transition-all whitespace-nowrap ${
                 timeRange === tab.id 
                   ? 'bg-slate-700 text-white font-medium shadow' 
-                  : (tab.id === 'monthly' || tab.id === 'all') 
+                  : tab.id === 'all' 
                     ? 'text-slate-400 hover:text-white opacity-50 cursor-not-allowed' 
                     : 'text-slate-400 hover:text-white'
               }`}
@@ -300,7 +307,6 @@ const Statistics = () => {
   );
 };
 
-// Yardımcı Komponentler
 const StatCard = ({ icon, title, value, unit, iconBg, iconColor }) => (
   <div className="bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
     <div className={`w-10 h-10 md:w-14 md:h-14 ${iconBg} ${iconColor} rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl shadow-inner shrink-0`}>
@@ -316,8 +322,7 @@ const StatCard = ({ icon, title, value, unit, iconBg, iconColor }) => (
 );
 
 const SessionRow = ({ category, time, duration, status }) => {
-  const isCompleted = status === "Tamamlandı" || status === "completed"; // İhtiyaten backend'den gelebilecek ham ingilizce kelimeyi de yakaladım
-  
+  const isCompleted = status === "Tamamlandı" || status === "completed"; 
   return (
     <div className="flex items-center justify-between p-4 bg-slate-800/30 hover:bg-slate-800/60 rounded-2xl border border-slate-700/30 transition-colors group">
       <div className="flex items-center gap-4">
