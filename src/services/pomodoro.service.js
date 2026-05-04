@@ -40,10 +40,15 @@ class PomodoroService {
       throw new UnauthorizedException("Bu oturumu değiştiremezsiniz.");
     }
 
-    const updatedSession = await this.pomodoroRepository.update(sessionId, { status });
-    
+    const updatedSession = await this.pomodoroRepository.update(sessionId, {
+      status,
+    });
+
     // Güvenli ID temizliği
-    const cleanId = (userId && typeof userId === "object") ? (userId.id || userId._id || userId.user) : userId;
+    const cleanId =
+      userId && typeof userId === "object"
+        ? userId.id || userId._id || userId.user
+        : userId;
     const cleanIdStr = cleanId.toString();
 
     let updatedProfile = null;
@@ -51,17 +56,20 @@ class PomodoroService {
     if (status === "completed") {
       // İstatistik Güncelleme (Geçmiş kodundan gelen kısım)
       if (this.statisticRepository && this.statisticRepository.incrementStats) {
-         await this.statisticRepository.incrementStats(cleanIdStr, session.duration);
+        await this.statisticRepository.incrementStats(
+          cleanIdStr,
+          session.duration,
+        );
       }
 
       if (this.profileRepository) {
         const profile = await this.profileRepository.findByUserId(cleanIdStr);
-        
+
         // Seri Hesapla
         const streakData = await this.streakService.calculateStreak(
           profile?.currentStreak || 0,
           profile?.bestStreak || 0,
-          profile?.lastSessionDate || null
+          profile?.lastSessionDate || null,
         );
 
         // İstatistikleri kaydet
@@ -70,13 +78,13 @@ class PomodoroService {
           session.duration,
           streakData.currentStreak,
           streakData.bestStreak,
-          streakData.lastSessionDate
+          streakData.lastSessionDate,
         );
       }
 
       // XP Kazan
       await this.profileService.gainXp(cleanIdStr, session.duration);
-      
+
       // Profilin en güncel halini döndür
       updatedProfile = await this.profileService.getUserProfile(cleanIdStr);
     }
@@ -92,49 +100,69 @@ class PomodoroService {
   }
   async getDailyDashboardStats(userId) {
     // 1. KULLANICI KONTROLÜ: userId bir obje mi yoksa düz string mi bak, içinden gerçek ID'yi çıkar
-    const cleanId = userId && typeof userId === "object" ? userId.id || userId._id || userId.user : userId;
-    
+    const cleanId =
+      userId && typeof userId === "object"
+        ? userId.id || userId._id || userId.user
+        : userId;
+
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
     const todaySessions = await this.pomodoroRepository.model.find({
       user: cleanId,
-      createdAt: { $gte: startOfDay, $lte: endOfDay } // $gte: büyük eşit, $lte: küçük eşit
+      createdAt: { $gte: startOfDay, $lte: endOfDay }, // $gte: büyük eşit, $lte: küçük eşit
     });
 
     //BAŞARI ANALİZİ: Gelen tüm kayıtlardan durumu sadece "completed" (tamamlanmış) olanları filtrele
-    const completedSessions = todaySessions.filter(s => s.status === "completed");
-    
+    const completedSessions = todaySessions.filter(
+      (s) => s.status === "completed",
+    );
+
     // Tamamlanan oturumların duration (süre) değerlerini toplayarak toplam dakikayı bul
-    const todayFocusMinutes = completedSessions.reduce((acc, curr) => acc + curr.duration, 0);
-    
+    const todayFocusMinutes = completedSessions.reduce(
+      (acc, curr) => acc + curr.duration,
+      0,
+    );
+
     // Toplam dakikayı 60'a bölerek saat cinsine çevir ve virgülden sonra 1 basamak göster (Örn: 2.5)
     const todayFocusHours = (todayFocusMinutes / 60).toFixed(1);
 
     // VERİMLİLİK HESABI: Toplam kaç kez başlanmış (Tamamlanan + İptal Edilenler)
-    const totalAttempted = todaySessions.filter(s => s.status === "completed" || s.status === "cancelled").length;
-    
+    const totalAttempted = todaySessions.filter(
+      (s) => s.status === "completed" || s.status === "cancelled",
+    ).length;
+
     // Eğer hiç deneme yoksa 0 döndür, varsa (Tamamlanan / Toplam Deneme) * 100 ile başarı oranını bul
-    const efficiency = totalAttempted === 0 ? 0 : Math.round((completedSessions.length / totalAttempted) * 100);
+    const efficiency =
+      totalAttempted === 0
+        ? 0
+        : Math.round((completedSessions.length / totalAttempted) * 100);
 
     //KATEGORİ DAĞILIMI (Pasta Grafik İçin):
     const categoryMap = {}; // Örn: { "Yazılım": 50, "Ders": 25 } şeklinde bir harita tutacak
-    completedSessions.forEach(s => {
+    completedSessions.forEach((s) => {
       const cat = s.category || "Diğer"; // Kategori yoksa "Diğer" kabul et
       categoryMap[cat] = (categoryMap[cat] || 0) + s.duration; // Mevcut sürenin üzerine ekle
     });
 
     // Grafik renk paleti
-    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
-    
+    const colors = [
+      "#6366f1",
+      "#ec4899",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#64748b",
+    ];
+
     // Haritayı (categoryMap) Frontend'in pasta grafik için istediği [{name, value, color}] formatına çevir
     const categoryData = Object.keys(categoryMap).map((key, index) => ({
       name: key,
       value: categoryMap[key],
-      color: colors[index % colors.length]
+      color: colors[index % colors.length],
     }));
 
     // SAATLİK DAĞILIM (Çizgi Grafik İçin):
@@ -145,7 +173,7 @@ class PomodoroService {
     }
 
     // Her bir tamamlanmış oturumu, yapıldığı saate (hour) göre ilgili kutucuğa ekle
-    completedSessions.forEach(s => {
+    completedSessions.forEach((s) => {
       const hour = new Date(s.createdAt).getHours();
       const hourKey = `${hour.toString().padStart(2, "0")}:00`;
       if (hourlyMap[hourKey] !== undefined) {
@@ -156,21 +184,29 @@ class PomodoroService {
     });
 
     // Haritayı çizgi grafiğin istediği [{time, duration}] formatına çevir
-    const hourlyData = Object.keys(hourlyMap).map(key => ({
+    const hourlyData = Object.keys(hourlyMap).map((key) => ({
       time: key,
-      duration: hourlyMap[key]
+      duration: hourlyMap[key],
     }));
 
     //SON OTURUMLAR LİSTESİ: Bugünkü tüm oturumları al
     const recentSessions = [...todaySessions]
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // En yeni olan en üstte (descending)
       .slice(0, 4) // Sadece son 4 tanesini getir
-      .map(s => ({
+      .map((s) => ({
         id: s._id,
         category: s.category || "Diğer",
-        time: new Date(s.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }), // Saati okunabilir yap (21:45)
+        time: new Date(s.createdAt).toLocaleTimeString("tr-TR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }), // Saati okunabilir yap (21:45)
         duration: `${s.duration} dk`,
-        status: s.status === "completed" ? "Tamamlandı" : (s.status === "cancelled" ? "İptal" : s.status)
+        status:
+          s.status === "completed"
+            ? "Tamamlandı"
+            : s.status === "cancelled"
+              ? "İptal"
+              : s.status,
       }));
 
     //SONUÇLARI PAKETLE: Frontend'in Dashboard'u doldurabilmesi için tüm hesapları tek bir obje olarak gönder
@@ -178,13 +214,58 @@ class PomodoroService {
       todayFocusHours,
       todaySessionsCount: completedSessions.length,
       efficiency,
-      categoryData: categoryData.length > 0 ? categoryData : [{ name: "Veri Yok", value: 1, color: "#334155" }],
+      categoryData:
+        categoryData.length > 0
+          ? categoryData
+          : [{ name: "Veri Yok", value: 1, color: "#334155" }],
       hourlyData,
-      recentSessions
+      recentSessions,
     };
-}
-  
+  }
+  async getWeeklyDashboardStats(userId) {
+    const cleanId =
+      userId && typeof userId === "object"
+        ? userId.id || userId._id || userId.user
+        : userId;
 
+    const todayNight = new Date();
+    todayNight.setHours(23, 59, 59, 999);
+
+    const today = new Date();
+
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - 7);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const weekSession = await this.pomodoroRepository.model.find({user:cleanId,createdAt: {$gte:startOfWeek , $lte: todayNight}});
+
+    const completedWeekSession = weekSession.filter(s => s.status === "completed"); 
+    const weekFocusMinutes = completedWeekSession.reduce((acc,curr)=> acc + curr.duration, 0)
+    const weekFocusHours = (weekFocusMinutes/ 60).toFixed(1);
+
+    const weekTotalAttempted = weekSession.filter(s => s.status === "completed" || s.status === "cancelled").length;
+    const weekEfficiency = weekTotalAttempted === 0 ? 0 : Math.round((completedWeekSession.length / weekTotalAttempted) * 100);
+
+    const categoryMap = {};
+    completedWeekSession.forEach(s => {
+      const cat = s.category || "Diğer";
+      categoryMap[cat] = (categoryMap[cat] || 0) + s.duration;
+    });
+    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
+
+    const weekCategoryData = Object.keys(categoryMap).map((key, index) => ({
+      name: key,
+      value: categoryMap[key],
+      color: colors[index % colors.length]
+    }));
+
+    return{
+    weekFocusHours,
+    weekEfficiency ,
+    weekCategoryData   
+    }
+
+  }
 }
 
 module.exports = PomodoroService;
