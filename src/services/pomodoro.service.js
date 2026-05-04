@@ -98,14 +98,18 @@ class PomodoroService {
     const pomodoros = await this.pomodoroRepository.getUserHistory(userId);
     return pomodoros.map((pomodoro) => PomodoroMapper.toResponse(pomodoro));
   }
-  async getDailyDashboardStats(userId) {
+  async getDailyDashboardStats(userId,offset = 0) {
     // 1. KULLANICI KONTROLÜ: userId bir obje mi yoksa düz string mi bak, içinden gerçek ID'yi çıkar
     const cleanId =
       userId && typeof userId === "object"
         ? userId.id || userId._id || userId.user
         : userId;
 
-    const startOfDay = new Date();
+    const offsetNum = parseInt(offset, 10) || 0;
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + offsetNum);
+
+    const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
 
     const endOfDay = new Date();
@@ -222,13 +226,17 @@ class PomodoroService {
       recentSessions,
     };
   }
-  async getWeeklyDashboardStats(userId) {
+  async getWeeklyDashboardStats(userId,offset = 0) {
     const cleanId =
       userId && typeof userId === "object"
         ? userId.id || userId._id || userId.user
         : userId;
 
-    const todayNight = new Date();
+        const offsetNum = parseInt(offset, 10) || 0;
+    const targetDate = new Date();
+    targetDate.setDate(targetDate.getDate() + (offsetNum * 7));
+
+    const todayNight = new Date(targetDate);
     todayNight.setHours(23, 59, 59, 999);
 
     const today = new Date();
@@ -237,139 +245,297 @@ class PomodoroService {
     startOfWeek.setDate(today.getDate() - 7);
     startOfWeek.setHours(0, 0, 0, 0);
 
-    const weekSession = await this.pomodoroRepository.model.find({user:cleanId,createdAt: {$gte:startOfWeek , $lte: todayNight}});
+    const weekSession = await this.pomodoroRepository.model.find({
+      user: cleanId,
+      createdAt: { $gte: startOfWeek, $lte: todayNight },
+    });
 
-    const completedWeekSession = weekSession.filter(s => s.status === "completed"); 
-    const weekFocusMinutes = completedWeekSession.reduce((acc,curr)=> acc + curr.duration, 0)
-    const weekFocusHours = (weekFocusMinutes/ 60).toFixed(1);
+    const completedWeekSession = weekSession.filter(
+      (s) => s.status === "completed",
+    );
+    const weekFocusMinutes = completedWeekSession.reduce(
+      (acc, curr) => acc + curr.duration,
+      0,
+    );
+    const weekFocusHours = (weekFocusMinutes / 60).toFixed(1);
 
-    const weekTotalAttempted = weekSession.filter(s => s.status === "completed" || s.status === "cancelled").length;
-    const weekEfficiency = weekTotalAttempted === 0 ? 0 : Math.round((completedWeekSession.length / weekTotalAttempted) * 100);
+    const weekTotalAttempted = weekSession.filter(
+      (s) => s.status === "completed" || s.status === "cancelled",
+    ).length;
+    const weekEfficiency =
+      weekTotalAttempted === 0
+        ? 0
+        : Math.round((completedWeekSession.length / weekTotalAttempted) * 100);
 
     const categoryMap = {};
-    completedWeekSession.forEach(s => {
+    completedWeekSession.forEach((s) => {
       const cat = s.category || "Diğer";
       categoryMap[cat] = (categoryMap[cat] || 0) + s.duration;
     });
-    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
+    const colors = [
+      "#6366f1",
+      "#ec4899",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#64748b",
+    ];
 
     const weekCategoryData = Object.keys(categoryMap).map((key, index) => ({
       name: key,
       value: categoryMap[key],
-      color: colors[index % colors.length]
+      color: colors[index % colors.length],
     }));
 
     const daysMap = {};
-    completedWeekSession.forEach(s => {
+    completedWeekSession.forEach((s) => {
       //"Pzt", "Sal" gibi gün ismini alıyoruz
-      const dayName = new Date(s.createdAt).toLocaleDateString('tr-TR', { weekday: 'short' }); 
+      const dayName = new Date(s.createdAt).toLocaleDateString("tr-TR", {
+        weekday: "short",
+      });
       daysMap[dayName] = (daysMap[dayName] || 0) + s.duration;
     });
-    
-    const hourlyData = Object.keys(daysMap).map(day => ({
+
+    const hourlyData = Object.keys(daysMap).map((day) => ({
       time: day,
-      duration: daysMap[day]
+      duration: daysMap[day],
     }));
     // Bu Haftaki Oturumlar Listesi (En son yapılan 5 oturumu alalım)
     const recentSessions = weekSession
       .sort((a, b) => b.createdAt - a.createdAt) // Yeniden eskiye sırala
       .slice(0, 5) // Ekranda çok kalabalık yapmasın, son 5 yeter
-      .map(s => {
+      .map((s) => {
         const date = new Date(s.createdAt);
-        const timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-        const dayStr = date.toLocaleDateString('tr-TR', { weekday: 'short' }); 
-        
+        const timeStr = date.toLocaleTimeString("tr-TR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const dayStr = date.toLocaleDateString("tr-TR", { weekday: "short" });
+
         return {
           id: s._id || s.id,
           category: s.category || "Diğer",
           time: `${dayStr} ${timeStr}`,
           duration: `${s.duration} dk`,
-          status: s.status === "completed" ? "Tamamlandı" : "İptal Edildi"
+          status: s.status === "completed" ? "Tamamlandı" : "İptal Edildi",
         };
       });
 
-    return{
-    weekFocusHours,
+    return {
+      weekFocusHours,
       weekEfficiency,
       weekCategoryData,
       weekTotalAttempted: completedWeekSession.length,
       hourlyData,
-      recentSessions   
-    }
+      recentSessions,
+    };
   }
-  async getMonthlyDashboardStats(userId){
+  async getMonthlyDashboardStats(userId, offset = 0) {
     const cleanId =
       userId && typeof userId === "object"
         ? userId.id || userId._id || userId.user
         : userId;
 
-    const todayNight = new Date();
-    todayNight.setHours(23, 59, 59, 999);
-
-    const today = new Date();
-
-    const startOfMonthly = new Date(today);
-    startOfMonthly.setDate(1);
-    startOfMonthly.setHours(0, 0, 0, 0);
-
-    const monthlySession = await this.pomodoroRepository.model.find({user:cleanId,createdAt: {$gte:startOfMonthly , $lte: todayNight}});
-
-    const completedMonthlySession = monthlySession.filter(s => s.status === "completed"); 
-    const monthlyFocusMinutes = completedMonthlySession.reduce((acc,curr)=> acc + curr.duration, 0)
-    const monthlyFocusHours = (monthlyFocusMinutes/ 60).toFixed(1);
+    const offsetNum = parseInt(offset, 10) || 0;
+    const targetDate = new Date();
+    targetDate.setDate(1); 
+    targetDate.setMonth(targetDate.getMonth() + offsetNum);
     
-    const monthlyTotalAttempted = monthlySession.filter(s => s.status === "completed" || s.status === "cancelled").length;
-    const monthlyEfficiency = monthlyTotalAttempted === 0 ? 0 : Math.round((completedMonthlySession.length / monthlyTotalAttempted) * 100);
+    const startOfMonthly = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+    startOfMonthly.setHours(0, 0, 0, 0);
+    let todayNight = new Date();
+    if (offsetNum === 0) {
+      todayNight.setHours(23, 59, 59, 999);
+    } else {
+      todayNight = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+      todayNight.setHours(23, 59, 59, 999);
+    }
+    const monthlySession = await this.pomodoroRepository.model.find({
+      user: cleanId,
+      createdAt: { $gte: startOfMonthly, $lte: todayNight },
+    });
+
+    const completedMonthlySession = monthlySession.filter(
+      (s) => s.status === "completed",
+    );
+    const monthlyFocusMinutes = completedMonthlySession.reduce(
+      (acc, curr) => acc + curr.duration,
+      0,
+    );
+    const monthlyFocusHours = (monthlyFocusMinutes / 60).toFixed(1);
+
+    const monthlyTotalAttempted = monthlySession.filter(
+      (s) => s.status === "completed" || s.status === "cancelled",
+    ).length;
+    const monthlyEfficiency =
+      monthlyTotalAttempted === 0
+        ? 0
+        : Math.round(
+            (completedMonthlySession.length / monthlyTotalAttempted) * 100,
+          );
 
     const categoryMap = {};
-    completedMonthlySession.forEach(s => {
+    completedMonthlySession.forEach((s) => {
       const cat = s.category || "Diğer";
       categoryMap[cat] = (categoryMap[cat] || 0) + s.duration;
     });
-    const colors = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#8b5cf6", "#64748b"];
+    const colors = [
+      "#6366f1",
+      "#ec4899",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#64748b",
+    ];
 
     const monthlyCategoryData = Object.keys(categoryMap).map((key, index) => ({
       name: key,
       value: categoryMap[key],
-      color: colors[index % colors.length]
+      color: colors[index % colors.length],
     }));
 
-   const daysMap = {};
-    completedMonthlySession.forEach(s => {
+    const daysMap = {};
+    completedMonthlySession.forEach((s) => {
       // "3 May", "4 May" gibi formatlıyoruz
-      const dayName = new Date(s.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }); 
+      const dayName = new Date(s.createdAt).toLocaleDateString("tr-TR", {
+        day: "numeric",
+        month: "short",
+      });
       daysMap[dayName] = (daysMap[dayName] || 0) + s.duration;
     });
 
-    const hourlyData = Object.keys(daysMap).map(day => ({
+    const hourlyData = Object.keys(daysMap).map((day) => ({
       time: day,
-      duration: daysMap[day]
+      duration: daysMap[day],
     }));
 
-     const recentSessions = monthlySession
+    const recentSessions = monthlySession
       .sort((a, b) => b.createdAt - a.createdAt) // Yeniden eskiye sırala
       .slice(0, 5) // Ekranda çok kalabalık yapmasın, son 5 yeter
-      .map(s => {
+      .map((s) => {
         const date = new Date(s.createdAt);
-        const timeStr = date.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
-        const dayStr = date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-        
+        const timeStr = date.toLocaleTimeString("tr-TR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const dayStr = date.toLocaleDateString("tr-TR", {
+          day: "numeric",
+          month: "short",
+        });
+
         return {
           id: s._id || s.id,
           category: s.category || "Diğer",
-          time: `${dayStr} ${timeStr}`, 
+          time: `${dayStr} ${timeStr}`,
           duration: `${s.duration} dk`,
-          status: s.status === "completed" ? "Tamamlandı" : "İptal Edildi"
+          status: s.status === "completed" ? "Tamamlandı" : "İptal Edildi",
         };
       });
-      return{
+    return {
       monthlyFocusHours,
       monthlyEfficiency,
       monthlyCategoryData,
       monthlyTotalAttempted: completedMonthlySession.length,
       hourlyData,
-      recentSessions   
-    }
+      recentSessions,
+    };
+  }
+  async getAllTimeDashboardStats(userId) {
+    const cleanId =
+      userId && typeof userId === "object"
+        ? userId.id || userId._id || userId.user
+        : userId;
+
+    const allTimeSession = await this.pomodoroRepository.model.find({
+      user: cleanId,
+    });
+
+    const completedAllTimeSession = allTimeSession.filter(
+      (s) => s.status === "completed",
+    );
+    const allTimeFocusMinutes = completedAllTimeSession.reduce(
+      (acc, curr) => acc + curr.duration,
+      0,
+    );
+    const allTimeFocusHours = (allTimeFocusMinutes / 60).toFixed(1);
+
+    const allTimeTotalAttempted = allTimeSession.filter(
+      (s) => s.status === "completed" || s.status === "cancelled",
+    ).length;
+
+    const allTimeEfficiency =
+      allTimeTotalAttempted === 0
+        ? 0
+        : Math.round(
+            (completedAllTimeSession.length / allTimeTotalAttempted) * 100,
+          );
+
+    const categoryMap = {};
+    completedAllTimeSession.forEach((s) => {
+      const cat = s.category || "Diğer";
+      categoryMap[cat] = (categoryMap[cat] || 0) + s.duration;
+    });
+
+    const colors = [
+      "#6366f1",
+      "#ec4899",
+      "#10b981",
+      "#f59e0b",
+      "#8b5cf6",
+      "#64748b",
+    ];
+
+    const allTimeCategoryData = Object.keys(categoryMap).map((key, index) => ({
+      name: key,
+      value: categoryMap[key],
+      color: colors[index % colors.length],
+    }));
+
+    const monthsMap = {};
+    completedAllTimeSession.forEach((s) => {
+      const monthName = new Date(s.createdAt).toLocaleDateString("tr-TR", {
+        month: "short",
+        year: "numeric",
+      });
+      monthsMap[monthName] = (monthsMap[monthName] || 0) + s.duration;
+    });
+
+    const hourlyData = Object.keys(monthsMap).map((month) => ({
+      time: month,
+      duration: monthsMap[month],
+    }));
+
+    const recentSessions = allTimeSession
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 5)
+      .map((s) => {
+        const date = new Date(s.createdAt);
+        const timeStr = date.toLocaleTimeString("tr-TR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const dayStr = date.toLocaleDateString("tr-TR", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        });
+
+        return {
+          id: s._id || s.id,
+          category: s.category || "Diğer",
+          time: `${dayStr} ${timeStr}`,
+          duration: `${s.duration} dk`,
+          status: s.status === "completed" ? "Tamamlandı" : "İptal Edildi",
+        };
+      });
+    return {
+      allTimeFocusHours,
+      allTimeEfficiency,
+      allTimeCategoryData,
+      allTimeTotalAttempted: completedAllTimeSession.length,
+      hourlyData,
+      recentSessions,
+    };
   }
 }
 

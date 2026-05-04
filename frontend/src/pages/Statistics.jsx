@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import api from '../services/api'; // API çağrıları için kendi axios/fetch dosyanı göster
+import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Statistics = () => {
   const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('daily');
+  const [dateOffset, setDateOffset] = useState(0);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     focusHours: 0,
@@ -17,30 +18,41 @@ const Statistics = () => {
   });
 
   const currentStreak = user?.currentStreak || 0;
+
+  // VERİ ÇEKME İŞLEMİ (dateOffset değiştiğinde de tetiklenir)
   useEffect(() => {
     const fetchStats = async () => {
       try {
         setLoading(true);
-        const endpoint = timeRange === 'monthly' ? '/pomodoros/monthly-stats' 
-                       : timeRange === 'weekly' ? '/pomodoros/weekly-stats' 
-                       : '/pomodoros/daily-stats';
-                       
+        const baseEndpoint = timeRange === 'all' ? '/pomodoros/all-time-stats'
+                           : timeRange === 'monthly' ? '/pomodoros/monthly-stats' 
+                           : timeRange === 'weekly' ? '/pomodoros/weekly-stats' 
+                           : '/pomodoros/daily-stats';
+                           
+        // Backend'e hangi zamanda olduğumuzu iletiyoruz (Backend hazır olduğunda işe yarayacak)
+        const endpoint = timeRange === 'all' ? baseEndpoint : `${baseEndpoint}?offset=${dateOffset}`;
+        
         const response = await api.get(endpoint);
         const data = response.data;
+        
         setStats({
-          focusHours: timeRange === 'monthly' ? (data.monthlyFocusHours || 0) 
+          focusHours: timeRange === 'all' ? (data.allTimeFocusHours || 0)
+                    : timeRange === 'monthly' ? (data.monthlyFocusHours || 0) 
                     : timeRange === 'weekly' ? (data.weekFocusHours || 0) 
                     : (data.todayFocusHours || 0),
                     
-          sessionsCount: timeRange === 'monthly' ? (data.monthlyTotalAttempted || 0) 
-                       : timeRange === 'weekly' ? (data.weekTotalAttempted || 0) 
-                       : (data.todaySessionsCount || 0),
+          sessionsCount: timeRange === 'all' ? (data.allTimeTotalAttempted || 0)
+                      : timeRange === 'monthly' ? (data.monthlyTotalAttempted || 0) 
+                      : timeRange === 'weekly' ? (data.weekTotalAttempted || 0) 
+                      : (data.todaySessionsCount || 0),
                        
-          efficiency: timeRange === 'monthly' ? (data.monthlyEfficiency || 0) 
+          efficiency: timeRange === 'all' ? (data.allTimeEfficiency || 0)
+                    : timeRange === 'monthly' ? (data.monthlyEfficiency || 0) 
                     : timeRange === 'weekly' ? (data.weekEfficiency || 0) 
                     : (data.efficiency || 0),
                     
-          categoryData: timeRange === 'monthly' ? (data.monthlyCategoryData || []) 
+          categoryData: timeRange === 'all' ? (data.allTimeCategoryData || [])
+                      : timeRange === 'monthly' ? (data.monthlyCategoryData || []) 
                       : timeRange === 'weekly' ? (data.weekCategoryData || []) 
                       : (data.categoryData || []),
                       
@@ -55,9 +67,33 @@ const Statistics = () => {
     };
 
     fetchStats();
-  }, [timeRange]);
+  }, [timeRange, dateOffset]); // Offset değiştiğinde veri yeniden çekilir
 
-  const todayFormatted = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+  // İLERİ - GERİ ZAMAN BUTONLARI FONKSİYONLARI
+  const handlePrev = () => setDateOffset(prev => prev - 1);
+  const handleNext = () => setDateOffset(prev => prev + 1);
+
+  // DİNAMİK TARİH YAZISI HESAPLAMA
+  const getDisplayDate = () => {
+    if (timeRange === 'all') return 'Tüm Zamanlar';
+    
+    const date = new Date();
+    if (timeRange === 'daily') {
+      date.setDate(date.getDate() + dateOffset);
+      const prefix = dateOffset === 0 ? 'Bugün, ' : dateOffset === -1 ? 'Dün, ' : '';
+      return prefix + date.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+    }
+    if (timeRange === 'weekly') {
+      if (dateOffset === 0) return 'Bu Hafta';
+      if (dateOffset === -1) return 'Geçen Hafta';
+      return `${Math.abs(dateOffset)} Hafta Önce`;
+    }
+    if (timeRange === 'monthly') {
+      date.setDate(1); // Ay atlamalarında hata olmaması için günü 1'e sabitliyoruz
+      date.setMonth(date.getMonth() + dateOffset);
+      return date.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+    }
+  };
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -82,7 +118,17 @@ const Statistics = () => {
     );
   }
 
-  const targetSessions = timeRange === 'monthly' ? 120 : timeRange === 'weekly' ? 28 : 4;
+  const targetSessions = timeRange === 'all' ? 500 : timeRange === 'monthly' ? 120 : timeRange === 'weekly' ? 28 : 4;
+
+  const getLabels = () => {
+    switch(timeRange) {
+      case 'all': return { focus: 'Toplam Odak', session: 'Toplam Oturum', dist: 'Genel Dağılım', recent: 'Son Oturumlar', target: 'Genel Hedef' };
+      case 'monthly': return { focus: 'Aylık Odak', session: 'Aylık Oturum', dist: 'Aylık Dağılım', recent: 'Bu Ayki Oturumlar', target: 'Aylık Hedef' };
+      case 'weekly': return { focus: 'Haftalık Odak', session: 'Haftalık Oturum', dist: 'Haftalık Dağılım', recent: 'Bu Haftaki Oturumlar', target: 'Haftalık Hedef' };
+      default: return { focus: 'Bugün Odak', session: 'Bugünkü Oturum', dist: 'Günün Dağılımı', recent: 'Bugünkü Oturumlar', target: 'Günlük Hedef' };
+    }
+  };
+  const labels = getLabels();
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white p-4 md:p-8 font-sans">
@@ -111,14 +157,15 @@ const Statistics = () => {
             <button 
               key={tab.id}
               onClick={() => {
-                if (tab.id === 'daily' || tab.id === 'weekly' || tab.id === 'monthly') setTimeRange(tab.id);
-              }}
+                if (timeRange !== tab.id) {
+                  setTimeRange(tab.id);
+                  setDateOffset(0); // Sekme değiştiğinde zamanı bugüne sıfırla
+                }
+              }} 
               className={`px-3 md:px-4 py-2 rounded-lg transition-all whitespace-nowrap ${
                 timeRange === tab.id 
                   ? 'bg-slate-700 text-white font-medium shadow' 
-                  : tab.id === 'all' 
-                    ? 'text-slate-400 hover:text-white opacity-50 cursor-not-allowed' 
-                    : 'text-slate-400 hover:text-white'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               {tab.label}
@@ -127,13 +174,26 @@ const Statistics = () => {
         </div>
       </div>
 
+      {/* DİNAMİK ZAMAN MAKİNESİ (İleri-Geri Butonları) */}
       <div className="flex items-center gap-4 mb-8">
-        <div className="flex bg-slate-800 rounded-lg overflow-hidden opacity-50 cursor-not-allowed">
-          <button className="px-3 py-2 hover:bg-slate-700 border-r border-slate-700">&lt;</button>
-          <button className="px-3 py-2 hover:bg-slate-700">&gt;</button>
+        <div className={`flex bg-slate-800 rounded-lg overflow-hidden ${timeRange === 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <button 
+            onClick={timeRange !== 'all' ? handlePrev : undefined}
+            disabled={timeRange === 'all'}
+            className="px-3 py-2 hover:bg-slate-700 border-r border-slate-700 transition-colors disabled:hover:bg-transparent"
+          >
+            &lt;
+          </button>
+          <button 
+            onClick={timeRange !== 'all' ? handleNext : undefined}
+            disabled={timeRange === 'all' || dateOffset >= 0} // Geleceğe gitmeyi engelledik
+            className={`px-3 py-2 hover:bg-slate-700 transition-colors ${(timeRange === 'all' || dateOffset >= 0) ? 'opacity-50 cursor-not-allowed disabled:hover:bg-transparent' : ''}`}
+          >
+            &gt;
+          </button>
         </div>
-        <div className="px-4 py-2 bg-slate-800 rounded-lg text-sm text-emerald-400 flex items-center gap-2 shadow-inner">
-          📅 Bugün, {todayFormatted}
+        <div className="px-4 py-2 bg-slate-800 rounded-lg text-sm text-emerald-400 flex items-center justify-center gap-2 shadow-inner min-w-[150px]">
+          📅 {getDisplayDate()}
         </div>
       </div>
 
@@ -141,7 +201,7 @@ const Statistics = () => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-6">
         <StatCard 
           icon="🕒" 
-          title={timeRange === 'weekly' ? "Haftalık Odak" : "Bugün Odak"} 
+          title={labels.focus} 
           value={stats.focusHours} 
           unit="saat" 
           iconBg="bg-blue-900/50" 
@@ -149,7 +209,7 @@ const Statistics = () => {
         />
         <StatCard 
           icon="🎯" 
-          title={timeRange === 'weekly' ? "Haftalık Oturum" : "Bugünkü Oturum"} 
+          title={labels.session} 
           value={stats.sessionsCount} 
           unit="adet" 
           iconBg="bg-orange-900/50" 
@@ -161,9 +221,9 @@ const Statistics = () => {
 
       {/* Grafikler Alanı */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Çizgi Grafik (Saatlik Odaklanma) */}
+        {/* Çizgi Grafik (Odaklanma Süreleri) */}
         <div className="lg:col-span-2 bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl p-6 shadow-xl">
-          <h3 className="font-bold mb-6 text-slate-200">Saatlik Odaklanma</h3>
+          <h3 className="font-bold mb-6 text-slate-200">Zaman Çizelgesi</h3>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats.hourlyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -188,7 +248,7 @@ const Statistics = () => {
                   dataKey="duration" 
                   stroke="#8b5cf6" 
                   strokeWidth={3} 
-                  dot={false}
+                  dot={{ r: 4, fill: '#8b5cf6', strokeWidth: 0 }} // Tek nokta görünme fix'i
                   activeDot={{ r: 6, fill: '#8b5cf6', stroke: '#1e293b', strokeWidth: 2 }}
                 />
               </LineChart>
@@ -198,7 +258,7 @@ const Statistics = () => {
 
         {/* Pasta Grafik (Kategori Dağılımı) */}
         <div className="bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl p-6 flex flex-col shadow-xl">
-          <h3 className="font-bold mb-2 text-slate-200">{timeRange === 'weekly' ? 'Haftalık Dağılım' : 'Günün Dağılımı'}</h3>
+          <h3 className="font-bold mb-2 text-slate-200">{labels.dist}</h3>
           <div className="flex-1 flex flex-col justify-center items-center relative">
              <div className="w-full h-48">
                <ResponsiveContainer width="100%" height="100%">
@@ -241,7 +301,7 @@ const Statistics = () => {
         {/* Son Oturumlar Listesi */}
         <div className="lg:col-span-2 bg-[#1e293b]/40 border border-slate-800/80 rounded-3xl p-6 shadow-xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="font-bold text-slate-200">{timeRange === 'weekly' ? 'Bu Haftaki Oturumlar' : 'Bugünkü Oturumlar'}</h3>
+            <h3 className="font-bold text-slate-200">{labels.recent}</h3>
             <button className="text-indigo-400 text-sm hover:text-indigo-300 font-medium transition-colors">Tümünü Gör</button>
           </div>
           
@@ -273,7 +333,7 @@ const Statistics = () => {
              ⚡
            </div>
            <h3 className="font-bold mb-6 text-slate-200 z-10 tracking-wide">
-             {timeRange === 'weekly' ? 'Haftalık Hedef' : 'Günlük Hedef'}
+             {labels.target}
            </h3>
            
            <div className="text-6xl font-black text-white mb-2 tracking-tighter z-10 flex items-baseline gap-1">

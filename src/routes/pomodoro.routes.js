@@ -8,6 +8,7 @@ router.use(authMiddleware);
 router.get("/daily-stats", pomodoroController.getDailyStats);
 router.get("/weekly-stats", pomodoroController.getWeeklyDashboardStats);
 router.get("/monthly-stats", pomodoroController.getMonthlyDashboardStats);
+router.get("/all-time-stats", pomodoroController.getAllTimeDashboardStats);
 router.post("/", pomodoroController.startSession);
 router.patch("/:id/status", pomodoroController.updateStatus);
 router.get("/", pomodoroController.getHistory);

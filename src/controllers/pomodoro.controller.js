@@ -40,8 +40,9 @@ class PomodoroController {
   }
   getDailyStats = async (req, res, next) =>{
     try {
-      const userId = req.user.id || req.user._id; 
-      const stats = await this.pomodoroService.getDailyDashboardStats(userId);
+      const userId = req.user.id || req.user._id;
+      const offset = req.query.offset || 0;
+      const stats = await this.pomodoroService.getDailyDashboardStats(userId,offset);
       res.status(200).json(stats);
     } catch (error) {
       next(error);
@@ -50,7 +51,8 @@ class PomodoroController {
   getWeeklyDashboardStats = async (req,res,next)=>{
     try {
       const userId = req.user.id || req.user._id;
-      const stats = await this.pomodoroService.getWeeklyDashboardStats(userId);
+      const offset = req.query.offset || 0;
+      const stats = await this.pomodoroService.getDailyDashboardStats(userId,offset);
       res.status(200).json(stats)
     } catch (error) {
       next(error);
@@ -59,8 +61,18 @@ class PomodoroController {
   getMonthlyDashboardStats = async (req,res,next)=>{
     try {
       const userId = req.user.id || req.user._id;
-      const stats = await this.pomodoroService.getMonthlyDashboardStats(userId);
+      const offset = req.query.offset || 0;
+      const stats = await this.pomodoroService.getDailyDashboardStats(userId,offset);
       res.status(200).json(stats)
+    } catch (error) {
+      next(error);
+    }
+  }
+  getAllTimeDashboardStats = async (req,res,next)=>{
+    try {
+      const userId = req.user.id || req.user._id;
+      const stats = await this.pomodoroService.getAllTimeDashboardStats(userId);
+      res.status(200).json(stats);
     } catch (error) {
       next(error);
     }
