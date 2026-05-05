@@ -128,6 +128,26 @@ class ProfileService {
     const user = await this.userRepository.model.findById(userId).select('-password');
     return ProfileMapper.toResponse(user, updatedProfile);
   }
+  async updateBanner(userId, bannerFilename) {
+    if (!bannerFilename) {
+      throw new BadRequestException("Lütfen geçerli bir arka plan dosyası seçin!");
+    }
+    const oldProfile = await this.profileRepository.model.findOne({ user: userId });
+    if (oldProfile && oldProfile.banner && oldProfile.banner !== 'default-banner.png') {
+      const oldImagePath = path.join(__dirname, '../public/uploads/banners', oldProfile.banner); 
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath); 
+      }
+    }
+    const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
+      { user: userId },
+      { banner: bannerFilename },
+      { new: true }
+    );
+
+    const user = await this.userRepository.model.findById(userId).select('-password');
+    return ProfileMapper.toResponse(user, updatedProfile);
+  }
 }
 
 module.exports = ProfileService;

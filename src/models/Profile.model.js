@@ -35,6 +35,10 @@ const profileSchema = new mongoose.Schema({
     type: String,
     default: "default-avatar.png"
   },
+  banner:{
+    type:String,
+    default:'default-banner.png'
+  },
   xp:{
     type:Number,
     default:0,

@@ -70,6 +70,16 @@ class ProfileController {
       next(error);
     }
   };
+  uploadBanner = async (req,res,next) => {
+    try {
+      const userId = req.user.id;
+      const filename = req.file?.filename; 
+      const result = await this.profileService.updateBanner(userId, filename);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
   
 }
 module.exports = ProfileController;

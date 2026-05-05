@@ -122,7 +122,7 @@ const Navbar = ({ notificationCount = 0 }) => {
                   <span className="text-[8px] bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded uppercase font-black">Yakında</span>
                 </button>
 
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-xl transition-all group" onClick={() => navigate('/settings')} >
+                <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-xl transition-all group" onClick={() => navigate('/settings?tab=profile')} >
                   <span className="text-lg group-hover:rotate-45 transition-transform duration-300">⚙️</span> 
                   Ayarlar
                 </button>

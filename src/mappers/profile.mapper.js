@@ -6,6 +6,7 @@ class ProfileMapper {
       title: profileDoc?.title,
       settings: profileDoc?.settings,
       avatar: profileDoc?.avatar,
+      banner: profileDoc?.banner || 'default-banner.png',
       joinedAt: user?.createdAt,
       xp: profileDoc ? profileDoc.xp : 0,
       level: profileDoc ? profileDoc.level : 1,

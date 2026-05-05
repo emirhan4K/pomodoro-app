@@ -9,16 +9,16 @@ const Profile = ({ profile, requests = [], refresh }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState([]); 
 
-  // --- YENİ EKLENEN PROFİL BİLGİLERİ MANTIĞI ---
+  // --- PROFİL BİLGİLERİ MANTIĞI ---
   const displayName = profile?.username || 'İsimsiz Kahraman';
-const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
+  const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
   
-  // E-postadan veya username'den dinamik bir nickname üretiyoruz
   const email = profile?.email || '';
   const nickname = email ? `@${email.split('@')[0].toLowerCase()}` : `@${profile?.username || 'odaklayici'}`
   
   const initial = displayName.charAt(0).toUpperCase();
   const avatar = profile?.avatar;
+  const banner = profile?.banner; // Banner bilgisini aldık
 
   const currentStreak = profile?.currentStreak || 0;
   const bestStreak = profile?.bestStreak || 0;
@@ -26,7 +26,7 @@ const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
   const totalHours = Number(profile?.totalWorkTime || 0).toFixed(1);
   const calculatedLevel = profile?.level || 1;
 
-  // Gerçek arkadaş listesini çek
+  // Arkadaş listesini çek
   useEffect(() => {
     if (activeTab === "friends") {
       api
@@ -53,14 +53,25 @@ const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 mt-8">
           
-          {/* SOL PANEL (HER ZAMAN GÖRÜNÜR) */}
+          {/* SOL PANEL (PROFIL KARTI) */}
           <div className="space-y-6">
             
-            {/* YENİ NESİL PROFİL KARTI */}
             <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[3rem] p-8 flex flex-col items-center border border-slate-200 dark:border-slate-800/50 shadow-xl relative overflow-hidden">
               
-              {/* Arka plan renk cümbüşü */}
-              <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-500/20 to-purple-500/20"></div>
+              {/* --- KAPAK FOTOĞRAFI (BANNER) ALANI --- */}
+              <div className="absolute top-0 left-0 w-full h-40 overflow-hidden z-0">
+                {banner && banner !== 'default-banner.png' ? (
+                  <img 
+                    src={`http://localhost:3000/public/uploads/banners/${banner}`} 
+                    alt="Kapak Fotoğrafı" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-500/30 to-purple-500/30 backdrop-blur-sm"></div>
+                )}
+                {/* Alt kısımla yumuşak geçiş için gölge */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white dark:to-[#1e293b]/20"></div>
+              </div>
 
               {/* Ayarlara Git Butonu */}
               <button 
@@ -72,10 +83,9 @@ const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
               </button>
 
               {/* Büyük Profil Avatarı */}
-              <div className="relative z-10 w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 p-1 shadow-lg shadow-indigo-500/30 mb-5 mt-6 group">
+              <div className="relative z-10 w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 p-1 shadow-lg shadow-indigo-500/30 mb-5 mt-10 group">
                 <div className="w-full h-full bg-white dark:bg-[#0f172a] rounded-full flex items-center justify-center border-4 border-white dark:border-[#1e293b] transition-transform group-hover:scale-95 duration-300 overflow-hidden">
                   
-                  {/* RESİM VARSA GÖSTER, YOKSA BAŞ HARF GÖSTER */}
                   {avatar && avatar !== 'default-avatar.png' ? (
                     <img 
                       src={`http://localhost:3000/public/uploads/avatars/${avatar}`} 
@@ -154,66 +164,32 @@ const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
             </div>
           </div>
 
-          {/* SAĞ PANEL (DİNAMİK DEĞİŞEN KISIM) */}
+          {/* SAĞ PANEL (İSTATİSTİKLER VEYA ARKADAŞLAR) */}
           <div className="space-y-6">
             {activeTab === "stats" ? (
-              // İSTATİSTİKLER SEKMESİ
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <StatCard
-                  label="Pomodoro"
-                  value={totalPomodoros}
-                  icon="🏆"
-                  color="text-yellow-500"
-                />
-                <StatCard
-                  label="Toplam Saat"
-                  value={totalHours}
-                  icon="🕒"
-                  color="text-blue-500"
-                />
-                <StatCard
-                  label="Mevcut Seri"
-                  value={currentStreak} 
-                  icon="🔥"
-                  color="text-orange-500"
-                />
-                <StatCard
-                  label="En İyi Seri"
-                  value={bestStreak} 
-                  icon="📈"
-                  color="text-indigo-500"
-                />
+                <StatCard label="Pomodoro" value={totalPomodoros} icon="🏆" color="text-yellow-500" />
+                <StatCard label="Toplam Saat" value={totalHours} icon="🕒" color="text-blue-500" />
+                <StatCard label="Mevcut Seri" value={currentStreak} icon="🔥" color="text-orange-500" />
+                <StatCard label="En İyi Seri" value={bestStreak} icon="📈" color="text-indigo-500" />
               </div>
             ) : (
-              // ARKADAŞ LİSTESİ SEKMESİ
               <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[3rem] p-10 border border-slate-200 dark:border-slate-800 shadow-xl min-h-[500px]">
-                <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-8 tracking-tighter">
-                  Arkadaşlarım
-                </h3>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-8 tracking-tighter">Arkadaşlarım</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {friends.map((friend) => (
-                    <div
-                      key={friend.id}
-                      className="flex items-center gap-4 p-5 bg-slate-50 dark:bg-slate-800/60 rounded-[2rem] border border-slate-100 dark:border-slate-700/30 transition-all hover:border-indigo-500/50"
-                    >
+                    <div key={friend.id} className="flex items-center gap-4 p-5 bg-slate-50 dark:bg-slate-800/60 rounded-[2rem] border border-slate-100 dark:border-slate-700/30 transition-all hover:border-indigo-500/50">
                       <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg">
                         {friend.username.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-black text-slate-800 dark:text-white">
-                          @{friend.username}
-                        </p>
-                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-                          Çevrimiçi
-                        </p>
+                        <p className="font-black text-slate-800 dark:text-white">@{friend.username}</p>
+                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Çevrimiçi</p>
                       </div>
                     </div>
                   ))}
                   {friends.length === 0 && (
-                    <p className="col-span-full text-center text-slate-400 py-20 font-black italic">
-                      Henüz hiç arkadaşın yok. Yeni birilerini aramaya ne
-                      dersin?
-                    </p>
+                    <p className="col-span-full text-center text-slate-400 py-20 font-black italic">Henüz hiç arkadaşın yok.</p>
                   )}
                 </div>
               </div>
@@ -227,15 +203,9 @@ const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
 
 const StatCard = ({ label, value, icon, color }) => (
   <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[3rem] p-12 border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center shadow-xl group hover:scale-[1.02] transition-all">
-    <div className="text-4xl mb-6 group-hover:rotate-12 transition-transform">
-      {icon}
-    </div>
-    <p className="text-6xl font-black text-slate-800 dark:text-white mb-3 tracking-tighter">
-      {value}
-    </p>
-    <p className={`text-[10px] font-black uppercase tracking-[0.4em] ${color}`}>
-      {label}
-    </p>
+    <div className="text-4xl mb-6 group-hover:rotate-12 transition-transform">{icon}</div>
+    <p className="text-6xl font-black text-slate-800 dark:text-white mb-3 tracking-tighter">{value}</p>
+    <p className={`text-[10px] font-black uppercase tracking-[0.4em] ${color}`}>{label}</p>
   </div>
 );
 
