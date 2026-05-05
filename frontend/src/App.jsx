@@ -8,6 +8,8 @@ import Profile from "./pages/Profile";
 import ForgotPassword from "./pages/ForgotPassword";
 import Statistics from "./pages/Statistics";
 import Settings from "./pages/Settings";
+import ActiveRoom from "./pages/ActiveRoom";
+import { PomodoroProvider } from "./context/PomodoroContext";
 
 function App() {
   const [profile, setProfile] = useState(null);
@@ -64,69 +66,73 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            profile ? (
-              <Navigate to="/dashboard" />
-            ) : (
-              <Login onLoginSuccess={refreshAppData} />
-            )
-          }
-        />
-        <Route
-          path="/register"
-          element={profile ? <Navigate to="/dashboard" /> : <Register />}
-        />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+      <PomodoroProvider>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              profile ? (
+                <Navigate to="/dashboard" />
+              ) : (
+                <Login onLoginSuccess={refreshAppData} />
+              )
+            }
+          />
+          <Route
+            path="/register"
+            element={profile ? <Navigate to="/dashboard" /> : <Register />}
+          />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            profile ? (
-              <Dashboard
-                profile={profile}
-                onComplete={refreshAppData}
-                notificationCount={notifications.length}
-              />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            profile ? (
-              <Profile
-                profile={profile}
-                requests={notifications}
-                refresh={refreshAppData}
-              />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        <Route
-          path="/statistics"
-          element={profile ? <Statistics /> : <Navigate to="/" />}
-        />
-        <Route
-          path="/settings"
-          element={
-            profile ? (
-              <Settings refresh={refreshAppData} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-
-        {/* HATALI YÖNLENDİRMELER İÇİN */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+          <Route
+            path="/dashboard"
+            element={
+              profile ? (
+                <Dashboard
+                  profile={profile}
+                  onComplete={refreshAppData}
+                  notificationCount={notifications.length}
+                />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              profile ? (
+                <Profile
+                  profile={profile}
+                  requests={notifications}
+                  refresh={refreshAppData}
+                />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/statistics"
+            element={profile ? <Statistics /> : <Navigate to="/" />}
+          />
+          <Route
+            path="/settings"
+            element={
+              profile ? (
+                <Settings refresh={refreshAppData} />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+          <Route
+            path="/room/:id"
+            element={profile ? <ActiveRoom /> : <Navigate to="/" />}
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </PomodoroProvider>
     </BrowserRouter>
   );
 }
