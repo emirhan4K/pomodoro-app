@@ -353,7 +353,7 @@ const Settings = ({ refresh }) => {
                 <div className="animate-fadeIn">
                   <h2 className="text-xl font-bold mb-6 text-slate-200">Bildirimler ve Ses</h2>
                   <div className="space-y-4">
-                    {['soundEnabled', 'notificationsEnabled', 'tickSoundEnabled'].map((field) => (
+                    {['Sesler', 'Bildirimler', 'tickSoundEnabled'].map((field) => (
                       <div key={field} className="flex items-center justify-between p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl">
                         <span className="font-medium text-slate-200 capitalize">{field.replace(/([A-Z])/g, ' $1')}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
@@ -367,23 +367,49 @@ const Settings = ({ refresh }) => {
               )}
 
               {activeTab === "account" && (
-                <div className="animate-fadeIn">
-                  <h2 className="text-xl font-bold mb-6 text-slate-200">Şifre Değiştirme</h2>
-                  <div className="space-y-4 mb-8">
-                    {['oldPassword', 'newPassword', 'confirmPassword'].map((field) => (
-                      <div key={field}>
-                        <label className="block text-sm font-medium text-slate-400 mb-1.5 capitalize">{field.replace(/([A-Z])/g, ' $1')}</label>
-                        <input type="password" name={field} value={passwords[field]} onChange={handlePasswordChange} className="w-full md:w-2/3 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500 transition-all" />
-                      </div>
-                    ))}
-                    <button onClick={submitPasswordChange} disabled={!passwords.oldPassword || !passwords.newPassword || isSaving} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 rounded-xl text-sm font-bold transition-all">Şifreyi Güncelle</button>
-                  </div>
-                  <div className="pt-8 mt-8 border-t border-slate-800">
-                    <h3 className="text-red-400 font-bold mb-2">Tehlikeli Bölge</h3>
-                    <button onClick={handleDeleteAccount} className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold transition-all">Hesabımı Kalıcı Olarak Sil</button>
-                  </div>
-                </div>
-              )}
+  <div className="animate-fadeIn">
+    <h2 className="text-xl font-bold mb-6 text-slate-200">Şifre Değiştirme</h2>
+    <div className="space-y-4 mb-8">
+      {/* State anahtarlarını dizi olarak dönüyoruz */}
+      {[
+        { id: 'oldPassword', label: 'Eski Şifre' },
+        { id: 'newPassword', label: 'Yeni Şifre' },
+        { id: 'confirmPassword', label: 'Yeni Şifre (Tekrar)' }
+      ].map((field) => (
+        <div key={field.id}>
+          <label className="block text-sm font-medium text-slate-400 mb-1.5">
+            {field.label}
+          </label>
+          <input 
+            type="password" 
+            name={field.id} // State'deki anahtar (oldPassword vb.)
+            value={passwords[field.id] || ""} // undefined uyarısını önlemek için fallback
+            onChange={handlePasswordChange} 
+            className="w-full md:w-2/3 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500 transition-all" 
+          />
+        </div>
+      ))}
+      
+      <button 
+        onClick={submitPasswordChange} 
+        disabled={!passwords.oldPassword || !passwords.newPassword || !passwords.confirmPassword || isSaving} 
+        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20"
+      >
+        {isSaving ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+      </button>
+    </div>
+
+    <div className="pt-8 mt-8 border-t border-slate-800">
+      <h3 className="text-red-400 font-bold mb-2">Tehlikeli Bölge</h3>
+      <button 
+        onClick={handleDeleteAccount} 
+        className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold transition-all"
+      >
+        Hesabımı Kalıcı Olarak Sil
+      </button>
+    </div>
+  </div>
+)}
 
               {activeTab !== "account" && (
                 <div className="mt-auto pt-8 flex justify-end">

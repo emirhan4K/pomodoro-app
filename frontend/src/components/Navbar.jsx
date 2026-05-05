@@ -48,8 +48,13 @@ const Navbar = ({ notificationCount = 0 }) => {
               isDropdownOpen ? 'border-indigo-500/50 shadow-md' : 'border-transparent hover:border-slate-300 dark:hover:border-slate-700'
             }`}
           >
-            <div className="w-9 h-9 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl flex items-center justify-center text-white font-black shadow-inner border border-slate-600">
-              {user?.username?.charAt(0).toUpperCase() || 'E'}
+            {/* Küçük Navbar Avatarı */}
+            <div className="w-9 h-9 bg-[#0f172a] rounded-xl flex items-center justify-center text-white font-black shadow-inner border border-slate-600 overflow-hidden">
+              {user?.avatar && user.avatar !== 'default-avatar.png' ? (
+                <img src={`http://localhost:3000/public/uploads/avatars/${user.avatar}`} className="w-full h-full object-cover" />
+              ) : (
+                user?.username?.charAt(0).toUpperCase() || 'E'
+              )}
             </div>
             {notificationCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-black w-4 h-4 flex items-center justify-center rounded-full border-2 border-white dark:border-[#1e293b] animate-bounce">
@@ -60,31 +65,48 @@ const Navbar = ({ notificationCount = 0 }) => {
 
           {/* ŞEKİLLİ ŞUKULLU AÇILIR MENÜ (DROPDOWN) */}
           {isDropdownOpen && (
-            <div className="absolute top-14 right-0 w-64 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top-right">
+            <div className="absolute top-14 right-0 w-80 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top-right">
               
-              {/* Kullanıcı Header Kısmı ve Mini XP Barı */}
-              <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 bg-gradient-to-br from-slate-50 to-white dark:from-[#1e293b]/40 dark:to-[#0f172a]/40">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-black shadow-lg">
-                    {user?.username?.charAt(0).toUpperCase() || 'E'}
+              {/* --- YENİ NESİL HEADER: BANNER VE AVATAR --- */}
+              <div className="relative h-32 w-full overflow-hidden">
+                {/* Arka Plan Banner */}
+                {user?.banner && user.banner !== 'default-banner.png' ? (
+                  <img src={`http://localhost:3000/public/uploads/banners/${user.banner}`} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-700 opacity-40" />
+                )}
+                
+                {/* Banner üzerine hafif karartma (Bilgilerin okunması için) */}
+                <div className="absolute inset-0 bg-black/30" />
+
+                {/* Header İçindeki Avatar ve Bilgiler */}
+                <div className="absolute bottom-4 left-5 flex items-center gap-3 z-10">
+                  <div className="w-14 h-14 rounded-2xl border-4 border-white/10 dark:border-[#0f172a] bg-[#0f172a] overflow-hidden flex items-center justify-center shadow-lg">
+                    {user?.avatar && user.avatar !== 'default-avatar.png' ? (
+                      <img src={`http://localhost:3000/public/uploads/avatars/${user.avatar}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xl font-black text-white">{user?.username?.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
-                  <div className="flex flex-col flex-1">
-                    <p className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight truncate w-32">@{user?.username || 'KULLANICI'}</p>
-                    <span className="mt-1 w-max bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest border border-indigo-200 dark:border-indigo-500/30">
-                      Seviye {userLevel}
+                  <div className="pb-1">
+                    <p className="text-sm font-black text-white uppercase tracking-tight truncate w-32 drop-shadow-md">@{user?.username || 'KULLANICI'}</p>
+                    <span className="bg-indigo-500 text-[10px] px-2 py-0.5 rounded-lg font-black text-white uppercase italic shadow-sm">
+                      SEVİYE {userLevel}
                     </span>
                   </div>
                 </div>
-                
-                {/* Mini Dropdown XP Barı */}
+              </div>
+
+              {/* XP Barı Kısmı (Banner'ın hemen altı) */}
+              <div className="p-5 pt-4 border-b border-slate-100 dark:border-slate-800/80">
                 <div className="w-full">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">İlerleme</span>
-                    <span className="text-[9px] font-bold text-indigo-500">{currentXp} / {requiredXp}</span>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">İlerleme</span>
+                    <span className="text-[10px] font-black text-indigo-500 tracking-tighter">{currentXp} / {requiredXp} XP</span>
                   </div>
-                  <div className="w-full h-1.5 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden">
+                  <div className="w-full h-2 bg-slate-200 dark:bg-slate-700/50 rounded-full overflow-hidden shadow-inner">
                     <div 
-                      className="h-full bg-indigo-500 rounded-full transition-all duration-700" 
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000 shadow-lg" 
                       style={{ width: `${progressPercentage}%` }}
                     ></div>
                   </div>
@@ -98,7 +120,6 @@ const Navbar = ({ notificationCount = 0 }) => {
                   Profilim
                 </button>
 
-                {/* YENİ EKLENEN İSTATİSTİKLER BUTONU */}
                 <button onClick={() => { navigate('/statistics'); setIsDropdownOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-xl transition-all group">
                   <span className="text-lg group-hover:scale-110 group-hover:rotate-12 transition-transform">📊</span> 
                   İstatistikler
@@ -122,7 +143,7 @@ const Navbar = ({ notificationCount = 0 }) => {
                   <span className="text-[8px] bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded uppercase font-black">Yakında</span>
                 </button>
 
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-xl transition-all group" onClick={() => navigate('/settings?tab=profile')} >
+                <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 rounded-xl transition-all group" onClick={() => { navigate('/settings?tab=profile'); setIsDropdownOpen(false); }} >
                   <span className="text-lg group-hover:rotate-45 transition-transform duration-300">⚙️</span> 
                   Ayarlar
                 </button>
