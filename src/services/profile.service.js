@@ -1,5 +1,6 @@
 const BadRequestException = require("../exceptions/BadRequestException");
 const UnauthorizedException = require("../exceptions/UnauthorizedException");
+const { hashPassword, comparePassword } = require("../utils/hash.utils");
 const ProfileMapper = require("../mappers/profile.mapper");
 
 class ProfileService {
@@ -11,7 +12,7 @@ class ProfileService {
   async getUserProfile(userId) {
     const user = await this.userRepository.findById(userId);
     let profile = await this.profileRepository.findByUserId(userId);
-    
+
     if (!profile) {
       profile = {
         xp: 0,
@@ -25,11 +26,9 @@ class ProfileService {
     }
     return ProfileMapper.toResponse(user, profile);
   }
-
   async handleCompletedPomodoro(userId, duration) {
     return await this.profileRepository.updateStats(userId, duration);
   }
-
   async getPublicProfile(targetUserId) {
     const user = await this.userRepository.findById(targetUserId);
     if (!user) throw new BadRequestException("Kullanıcı bulunamadı!");
@@ -37,7 +36,6 @@ class ProfileService {
     const profile = await this.profileRepository.findByUserId(targetUserId);
     return ProfileMapper.toResponse(user, profile);
   }
-
   async gainXp(userId, earnedXp) {
     const cleanId = userId?.id || userId?._id || userId;
     let profile = await this.profileRepository.findByUserId(cleanId);
@@ -67,6 +65,40 @@ class ProfileService {
     await this.profileRepository.update(profile._id, { xp, level });
     return { xp, level };
   }
+  async updateProfileInfo(userId, { name, title}) {
+    const updatedUser = await this.userRepository.model.findByIdAndUpdate(
+      userId,
+      { name, title },
+      { new: true }
+    ).select('-password');
+    
+    return ProfileMapper.toResponse(updatedUser);
+  }
+  async updateUserSettings(userId,settingsData){
+    const updatedUser = await this.userRepository.model.findByIdAndUpdate(
+      userId,
+      { $set: { settings: settingsData } }, 
+      { new: true }
+    ).select('-password');
+    return ProfileMapper.toResponse(updatedUser);
+  }
+  async changePasswordSettings(userId,oldPassword,newPassword){
+    const user = await this.userRepository.findById(userId)
+    if(!user) throw new BadRequestException("Kullanıcı bulunamadı!")
+      
+    const isMatch = await comparePassword(oldPassword,user.password)
+    if(!isMatch) throw new UnauthorizedException("Mevcut şifreniz yanlış")
+
+    const hashedPassword = await hashPassword(newPassword);
+    user.password = hashedPassword;
+    await user.save();
+    return { message: 'Şifreniz başarıyla güncellendi.' };
+  }
+  async deleteAccount(userId) {
+    const deletedUser = await this.userRepository.model.findByIdAndDelete(userId);
+    if (!deletedUser) throw new BadRequestException('Kullanıcı bulunamadı veya zaten silinmiş.');
+    return { message: 'Hesabınız başarıyla silindi.' };
+  } 
 }
 
 module.exports = ProfileService;
