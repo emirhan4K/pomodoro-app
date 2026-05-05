@@ -7,7 +7,7 @@ const swaggerDocument = require("./swagger-output.json");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, '/public')));
 
 // Swagger'ı Başlat
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));

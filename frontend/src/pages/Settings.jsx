@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -7,6 +7,8 @@ const Settings = ({ refresh }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState(null); // Dosyanın kendisi
+  const [avatarPreview, setAvatarPreview] = useState(null); // Ekranda göstereceğimiz sahte link
 
   // Yükleme ve Bildirim State'leri
   const [isLoading, setIsLoading] = useState(true);
@@ -37,15 +39,13 @@ const Settings = ({ refresh }) => {
     const fetchSettings = async () => {
       try {
         const response = await api.get("/profile/me");
-
-        // Backend'in veriyi nasıl döndüğünü bilmediğimiz için akıllı bir yakalama yapıyoruz.
-        // Eğer "user" objesi varsa onu al, yoksa direkt gelen datanın kendisini kullan.
         const userData = response.data.user || response.data;
 
         setFormData({
           name: userData?.username || userData?.name || "",
           email: userData?.email || "",
           title: userData?.title || "",
+          avatar: userData?.avatar || profileData?.avatar,
           focusTime: userData?.settings?.focusTime ?? 25,
           shortBreak: userData?.settings?.shortBreak ?? 5,
           longBreak: userData?.settings?.longBreak ?? 15,
@@ -65,7 +65,7 @@ const Settings = ({ refresh }) => {
     fetchSettings();
   }, []);
 
-  // İnput değişikliklerini yakalama
+  //İnput değişikliklerini yakalama
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
@@ -78,13 +78,13 @@ const Settings = ({ refresh }) => {
     setPasswords((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Geçici mesaj gösterme fonksiyonu
+  //Geçici mesaj gösterme fonksiyonu
   const showMessage = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: "", text: "" }), 4000);
   };
 
-  // 2. KAYDET BUTONUNA BASILDIĞINDA (Profil veya Ayarlar)
+  //KAYDET BUTONUNA BASILDIĞINDA (Profil veya Ayarlar)
   const handleSave = async () => {
     setIsSaving(true);
     setMessage({ type: "", text: "" });
@@ -96,8 +96,20 @@ const Settings = ({ refresh }) => {
           name: formData.name,
           title: formData.title,
         });
+        if (selectedAvatarFile) {
+          const uploadData = new FormData();
+          uploadData.append('avatar', selectedAvatarFile);
+          const response = await api.put('/profile/avatar', uploadData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          if (response.data.avatar) {
+             setFormData(prev => ({ ...prev, avatar: response.data.avatar }));
+          }
+          setSelectedAvatarFile(null);
+          setAvatarPreview(null);
+        }
 
-        if (refresh) refresh();
+        if (refresh) await refresh();
         showMessage("success", "Profil bilgileriniz başarıyla güncellendi.");
       } else if (activeTab === "timer" || activeTab === "notifications") {
         // Ayarlar Sekmesi İstek
@@ -124,7 +136,24 @@ const Settings = ({ refresh }) => {
     }
   };
 
-  // 3. ŞİFRE DEĞİŞTİRME İŞLEMİ
+  // Gizli input için referans
+  const fileInputRef = useRef(null);
+
+  // Dosya seçildiğinde tetiklenecek kargo fonksiyonu
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      return showMessage("error", "Lütfen geçerli bir resim dosyası seçin.");
+    }
+    setSelectedAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+
+    e.target.value = null;
+  };
+
+  //ŞİFRE DEĞİŞTİRME İŞLEMİ
   const submitPasswordChange = async () => {
     if (passwords.newPassword !== passwords.confirmPassword) {
       return showMessage("error", "Yeni şifreler birbiriyle eşleşmiyor!");
@@ -151,7 +180,7 @@ const Settings = ({ refresh }) => {
     }
   };
 
-  // 4. HESAP SİLME İŞLEMİ
+  //HESAP SİLME İŞLEMİ
   const handleDeleteAccount = async () => {
     const isConfirmed = window.confirm(
       "Hesabınızı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!",
@@ -256,11 +285,47 @@ const Settings = ({ refresh }) => {
                 </h2>
 
                 <div className="flex items-center gap-6 mb-8">
-                  <div className="w-24 h-24 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-3xl font-bold shadow-lg uppercase">
-                    {formData.name ? formData.name.charAt(0) : "?"}
+                  {/* Fotoğraf Görüntüleme Alanı */}
+                  <div className="w-24 h-24 rounded-full flex items-center justify-center text-3xl font-bold shadow-lg uppercase overflow-hidden border-4 border-slate-800">
+                    
+                    {/* 1. ÖNCELİK: Seçilen yeni bir fotoğraf varsa onu (önizlemeyi) göster */}
+                    {avatarPreview ? (
+                      <img 
+                        src={avatarPreview} 
+                        alt="Yeni Profil Önizleme" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) 
+                    /* 2. ÖNCELİK: Veritabanında fotoğraf varsa onu göster */
+                    : formData.avatar && formData.avatar !== 'default-avatar.png' ? (
+                      <img 
+                        src={`http://localhost:3000/public/uploads/avatars/${formData.avatar}`} 
+                        alt="Profil" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) 
+                    /* 3. ÖNCELİK: İkisi de yoksa ismin baş harfini göster */
+                    : (
+                      <div className="w-full h-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+                        {formData.name ? formData.name.charAt(0) : '?'}
+                      </div>
+                    )}
+                    
                   </div>
+
+                  {/* Buton ve Gizli Input */}
                   <div>
-                    <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-sm font-medium transition-colors mb-2">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleAvatarChange}
+                      accept="image/jpeg, image/png, image/webp"
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current.click()}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-lg text-sm font-medium transition-colors mb-2"
+                    >
                       Fotoğrafı Değiştir
                     </button>
                     <p className="text-xs text-slate-500">

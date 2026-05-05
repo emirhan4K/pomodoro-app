@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom"; // Sekme kontrolü için
+import { useSearchParams } from "react-router-dom"; 
 import Navbar from "../components/Navbar";
 import api from "../services/api";
 
@@ -18,7 +18,7 @@ const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
   const nickname = email ? `@${email.split('@')[0].toLowerCase()}` : `@${profile?.username || 'odaklayici'}`
   
   const initial = displayName.charAt(0).toUpperCase();
-  // ---------------------------------------------
+  const avatar = profile?.avatar;
 
   const currentStreak = profile?.currentStreak || 0;
   const bestStreak = profile?.bestStreak || 0;
@@ -73,10 +73,21 @@ const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
 
               {/* Büyük Profil Avatarı */}
               <div className="relative z-10 w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 p-1 shadow-lg shadow-indigo-500/30 mb-5 mt-6 group">
-                <div className="w-full h-full bg-white dark:bg-[#0f172a] rounded-full flex items-center justify-center border-4 border-white dark:border-[#1e293b] transition-transform group-hover:scale-95 duration-300">
-                  <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-tr from-indigo-500 to-purple-500">
-                    {initial}
-                  </span>
+                <div className="w-full h-full bg-white dark:bg-[#0f172a] rounded-full flex items-center justify-center border-4 border-white dark:border-[#1e293b] transition-transform group-hover:scale-95 duration-300 overflow-hidden">
+                  
+                  {/* RESİM VARSA GÖSTER, YOKSA BAŞ HARF GÖSTER */}
+                  {avatar && avatar !== 'default-avatar.png' ? (
+                    <img 
+                      src={`http://localhost:3000/public/uploads/avatars/${avatar}`} 
+                      alt="Profil Avatarı" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-tr from-indigo-500 to-purple-500">
+                      {initial}
+                    </span>
+                  )}
+                  
                 </div>
               </div>
 
