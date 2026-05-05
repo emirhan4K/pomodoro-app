@@ -2,6 +2,8 @@ const BadRequestException = require("../exceptions/BadRequestException");
 const UnauthorizedException = require("../exceptions/UnauthorizedException");
 const { hashPassword, comparePassword } = require("../utils/hash.utils");
 const ProfileMapper = require("../mappers/profile.mapper");
+const fs = require('fs');
+const path = require('path');
 
 class ProfileService {
   constructor({ profileRepository, userRepository }) {
@@ -110,11 +112,19 @@ class ProfileService {
     if (!avatarFilename) {
       throw new BadRequestException("Lütfen geçerli bir resim dosyası seçin!");
     }
+    const oldProfile = await this.profileRepository.model.findOne({ user: userId });
+    if (oldProfile && oldProfile.avatar && oldProfile.avatar !== 'default-avatar.png') {
+      const oldImagePath = path.join(__dirname, '../public/uploads/avatars', oldProfile.avatar); 
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath); 
+      }
+    }
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
       { avatar: avatarFilename },
       { new: true }
     );
+
     const user = await this.userRepository.model.findById(userId).select('-password');
     return ProfileMapper.toResponse(user, updatedProfile);
   }
