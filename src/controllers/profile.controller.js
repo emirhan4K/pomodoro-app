@@ -60,6 +60,16 @@ class ProfileController {
       next(error)
     }
   }
+  uploadAvatar = async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const filename = req.file?.filename; 
+      const result = await this.profileService.updateAvatar(userId, filename);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
   
 }
 module.exports = ProfileController;

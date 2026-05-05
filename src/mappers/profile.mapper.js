@@ -5,6 +5,7 @@ class ProfileMapper {
       email: user?.email,
       title: profileDoc?.title,
       settings: profileDoc?.settings,
+      avatar: profileDoc?.avatar,
       joinedAt: user?.createdAt,
       xp: profileDoc ? profileDoc.xp : 0,
       level: profileDoc ? profileDoc.level : 1,

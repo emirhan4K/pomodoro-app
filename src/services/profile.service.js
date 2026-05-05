@@ -79,7 +79,6 @@ class ProfileService {
     );
     return ProfileMapper.toResponse(updatedUser, updatedProfile);
   }
-
   async updateUserSettings(userId, settingsData) {
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
@@ -106,7 +105,19 @@ class ProfileService {
     const deletedUser = await this.userRepository.model.findByIdAndDelete(userId);
     if (!deletedUser) throw new BadRequestException('Kullanıcı bulunamadı veya zaten silinmiş.');
     return { message: 'Hesabınız başarıyla silindi.' };
-  } 
+  }
+  async updateAvatar(userId, avatarFilename) {
+    if (!avatarFilename) {
+      throw new BadRequestException("Lütfen geçerli bir resim dosyası seçin!");
+    }
+    const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
+      { user: userId },
+      { avatar: avatarFilename },
+      { new: true }
+    );
+    const user = await this.userRepository.model.findById(userId).select('-password');
+    return ProfileMapper.toResponse(user, updatedProfile);
+  }
 }
 
 module.exports = ProfileService;
