@@ -9,13 +9,21 @@ const Profile = ({ profile, requests = [], refresh }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState([]); 
 
-  const username = profile?.username || "Kullanıcı";
+  // --- YENİ EKLENEN PROFİL BİLGİLERİ MANTIĞI ---
+  const displayName = profile?.username || 'İsimsiz Kahraman';
+const bio = profile?.title || 'Henüz bir unvan eklenmemiş.';
+  
+  // E-postadan veya username'den dinamik bir nickname üretiyoruz
+  const email = profile?.email || '';
+  const nickname = email ? `@${email.split('@')[0].toLowerCase()}` : `@${profile?.username || 'odaklayici'}`
+  
+  const initial = displayName.charAt(0).toUpperCase();
+  // ---------------------------------------------
+
   const currentStreak = profile?.currentStreak || 0;
   const bestStreak = profile?.bestStreak || 0;
-  
-  // ŞU 3 SATIRI DEĞİŞTİR:
   const totalPomodoros = profile?.totalPomodoros || 0; 
-const totalHours = Number(profile?.totalWorkTime || 0).toFixed(1);
+  const totalHours = Number(profile?.totalWorkTime || 0).toFixed(1);
   const calculatedLevel = profile?.level || 1;
 
   // Gerçek arkadaş listesini çek
@@ -37,28 +45,67 @@ const totalHours = Number(profile?.totalWorkTime || 0).toFixed(1);
       console.error(err);
     }
   };
-console.log("DEBUG - Profil İstatistikleri:", profile?.stats);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 pb-12 font-sans">
       <div className="max-w-7xl mx-auto px-4">
         <Navbar profile={profile} notificationCount={requests.length} />
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 mt-8">
+          
           {/* SOL PANEL (HER ZAMAN GÖRÜNÜR) */}
           <div className="space-y-6">
-            <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[3rem] p-10 flex flex-col items-center border border-slate-200 dark:border-slate-800/50 shadow-xl">
-              <div className="w-32 h-32 rounded-full bg-indigo-600 flex items-center justify-center text-white text-4xl font-black mb-6 border-4 border-white dark:border-slate-800 shadow-xl">
-                {username.charAt(0).toUpperCase()}
+            
+            {/* YENİ NESİL PROFİL KARTI */}
+            <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[3rem] p-8 flex flex-col items-center border border-slate-200 dark:border-slate-800/50 shadow-xl relative overflow-hidden">
+              
+              {/* Arka plan renk cümbüşü */}
+              <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-indigo-500/20 to-purple-500/20"></div>
+
+              {/* Ayarlara Git Butonu */}
+              <button 
+                onClick={() => window.location.href = '/settings'}
+                className="absolute top-6 right-6 p-2.5 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md rounded-xl transition-all text-slate-600 dark:text-slate-300 z-20 shadow-sm hover:scale-110 hover:rotate-45 duration-300"
+                title="Profili Düzenle"
+              >
+                ⚙️
+              </button>
+
+              {/* Büyük Profil Avatarı */}
+              <div className="relative z-10 w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 p-1 shadow-lg shadow-indigo-500/30 mb-5 mt-6 group">
+                <div className="w-full h-full bg-white dark:bg-[#0f172a] rounded-full flex items-center justify-center border-4 border-white dark:border-[#1e293b] transition-transform group-hover:scale-95 duration-300">
+                  <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-tr from-indigo-500 to-purple-500">
+                    {initial}
+                  </span>
+                </div>
               </div>
-              <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tighter mb-2">
-                @{username}
+
+              {/* İsim ve Nickname */}
+              <h2 className="relative z-10 text-2xl font-black text-slate-800 dark:text-white tracking-tight text-center px-4">
+                {displayName}
               </h2>
-              <span className="bg-[#facc15] text-slate-900 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-                LVL {calculatedLevel}
-              </span>
+              <p className="relative z-10 text-sm font-bold text-indigo-500 dark:text-indigo-400 mt-1.5 flex items-center gap-1.5 mb-5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                {nickname}
+              </p>
+
+              {/* Unvan/Bio Kutusu */}
+              <div className="relative z-10 w-full bg-slate-50 dark:bg-slate-800/50 px-5 py-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 text-center mb-6 shadow-inner">
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                  {bio}
+                </p>
+              </div>
+
+              {/* Level Rozeti */}
+              <div className="relative z-10 w-full flex justify-between items-center bg-slate-100 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700/50">
+                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Mevcut Seviye</span>
+                 <span className="bg-[#facc15] text-slate-900 px-4 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest shadow-md">
+                   LVL {calculatedLevel}
+                 </span>
+              </div>
             </div>
 
-            {/* Sosyal Etkileşim Paneli (Sol Altta Sabit) */}
+            {/* Sosyal Etkileşim Paneli */}
             <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800/50 shadow-xl">
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
                 Sosyal Etkileşim
@@ -74,7 +121,7 @@ console.log("DEBUG - Profil İstatistikleri:", profile?.stats);
                     </span>
                     <button
                       onClick={() => handleAction("accept", req.id)}
-                      className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center"
+                      className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors"
                     >
                       ✓
                     </button>
@@ -89,7 +136,7 @@ console.log("DEBUG - Profil İstatistikleri:", profile?.stats);
               <input
                 type="text"
                 placeholder="Arkadaş ara..."
-                className="w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl py-3 px-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
+                className="w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl py-3 px-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -113,21 +160,18 @@ console.log("DEBUG - Profil İstatistikleri:", profile?.stats);
                   icon="🕒"
                   color="text-blue-500"
                 />
-                {/* Mevcut Seri Kartı - value kısmını değiştirdik */}
-<StatCard
-  label="Mevcut Seri"
-  value={currentStreak} // "0" yerine bunu yazdık
-  icon="🔥"
-  color="text-orange-500"
-/>
-
-{/* En İyi Seri Kartı - value kısmını değiştirdik */}
-<StatCard
-  label="En İyi Seri"
-  value={bestStreak} // "0" yerine bunu yazdık
-  icon="📈"
-  color="text-indigo-500"
-/>
+                <StatCard
+                  label="Mevcut Seri"
+                  value={currentStreak} 
+                  icon="🔥"
+                  color="text-orange-500"
+                />
+                <StatCard
+                  label="En İyi Seri"
+                  value={bestStreak} 
+                  icon="📈"
+                  color="text-indigo-500"
+                />
               </div>
             ) : (
               // ARKADAŞ LİSTESİ SEKMESİ

@@ -65,22 +65,30 @@ class ProfileService {
     await this.profileRepository.update(profile._id, { xp, level });
     return { xp, level };
   }
-  async updateProfileInfo(userId, { name, title}) {
+  async updateProfileInfo(userId, { name, title }) {
     const updatedUser = await this.userRepository.model.findByIdAndUpdate(
       userId,
-      { name, title },
+      { username: name, username: name }, 
       { new: true }
     ).select('-password');
-    
-    return ProfileMapper.toResponse(updatedUser);
+
+    const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
+      { user: userId }, 
+      { title: title },
+      { new: true }
+    );
+    return ProfileMapper.toResponse(updatedUser, updatedProfile);
   }
-  async updateUserSettings(userId,settingsData){
-    const updatedUser = await this.userRepository.model.findByIdAndUpdate(
-      userId,
+
+  async updateUserSettings(userId, settingsData) {
+    const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
+      { user: userId },
       { $set: { settings: settingsData } }, 
       { new: true }
-    ).select('-password');
-    return ProfileMapper.toResponse(updatedUser);
+    );
+    const user = await this.userRepository.model.findById(userId).select('-password');
+    
+    return ProfileMapper.toResponse(user, updatedProfile);
   }
   async changePasswordSettings(userId,oldPassword,newPassword){
     const user = await this.userRepository.findById(userId)

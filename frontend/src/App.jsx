@@ -42,7 +42,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // --- TEMA KONTROLÜ (A'DAN Z'YE PERSISTENCE) ---
     if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark');
     } else {
@@ -64,7 +63,7 @@ function App() {
         <Route path="/dashboard" element={profile ? <Dashboard profile={profile} onComplete={refreshAppData} notificationCount={notifications.length} /> : <Navigate to="/" />} />
         <Route path="/profile" element={profile ? <Profile profile={profile} requests={notifications} refresh={refreshAppData} /> : <Navigate to="/" />} />
         <Route path="/statistics" element={profile ? <Statistics /> : <Navigate to="/" />} />
-        <Route path="/settings" element={profile ? <Settings /> : <Navigate to="/" />} />
+        <Route path="/settings" element={profile ? <Settings refresh={refreshAppData} /> : <Navigate to="/" />} />
         
         {/* HATALI YÖNLENDİRMELER İÇİN */}
         <Route path="*" element={<Navigate to="/" />} />
