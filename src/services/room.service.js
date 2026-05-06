@@ -30,6 +30,9 @@ class RoomService{
         }
         return RoomMapper.toDTO(room);
     }
+    async getAllRooms(userId,roomId){
+        const user =
+    }
 }
 
 module.exports = RoomService;
