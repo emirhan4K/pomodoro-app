@@ -9,5 +9,7 @@ router.use(authMiddleware);
 
 router.post("/",validate(createRoomSchema),roomController.createRoom);
 router.get("/:id", roomController.getRoomById);
+router.post("/:roomId/join", roomController.joinRoom);
+router.post("/:roomId/leave", roomController.leaveRoom);
 
 module.exports = router;
