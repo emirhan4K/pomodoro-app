@@ -55,7 +55,10 @@ const ActiveRoom = ({ profile }) => {
       {/* TEBRİK KARTI (Ayrı Dosyadan Gelen) */}
       <RoomCongratsModal 
         isOpen={showCongrats} 
-        onClose={() => setShowCongrats(false)} 
+        onClose={() => {
+          setShowCongrats(false); 
+          handleReset(); 
+        }} 
         minutes={selectedMinutes}
       />
 

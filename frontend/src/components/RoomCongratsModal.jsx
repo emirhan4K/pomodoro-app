@@ -14,7 +14,7 @@ const RoomCongratsModal = ({ isOpen, onClose, minutes }) => {
           <span className="text-4xl">🔥</span>
         </div>
         
-        <h2 className="text-3xl font-black text-white italic tracking-tight mb-2">HARİKA İŞ!</h2>
+        <h2 className="text-3xl font-black text-white italic tracking-tight mb-2">TEBRİKLER !</h2>
         <p className="text-slate-400 text-sm font-medium mb-8 leading-relaxed">
           <span className="text-emerald-400 font-bold">{minutes} dakikalık</span> odaklanma seansını başarıyla tamamladın. XP ve istatistiklerin güncellendi.
         </p>
