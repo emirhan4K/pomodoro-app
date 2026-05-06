@@ -121,13 +121,11 @@ const Settings = ({ refresh }) => {
 
     try {
       if (activeTab === "profile") {
-        // 1. Bilgileri Güncelle
-        await api.put("/profile/update-info", {
-          name: formData.name,
-          title: formData.title,
-        });
+        
+        let updatedAvatar = formData.avatar;
+        let updatedBanner = formData.banner;
 
-        // 2. Avatar Yükle
+        // 1. ÖNCE AVATARI YÜKLE (Eğer yeni seçildiyse)
         if (selectedAvatarFile) {
           const avatarData = new FormData();
           avatarData.append("avatar", selectedAvatarFile);
@@ -135,13 +133,14 @@ const Settings = ({ refresh }) => {
             headers: { "Content-Type": "multipart/form-data" },
           });
           if (response.data.avatar) {
-            setFormData((prev) => ({ ...prev, avatar: response.data.avatar }));
+            updatedAvatar = response.data.avatar;
+            setFormData((prev) => ({ ...prev, avatar: updatedAvatar }));
           }
           setSelectedAvatarFile(null);
           setAvatarPreview(null);
         }
 
-        // 3. Banner Yükle
+        // 2. ÖNCE BANNERI YÜKLE (Eğer yeni seçildiyse)
         if (selectedBannerFile) {
           const bannerData = new FormData();
           bannerData.append("banner", selectedBannerFile);
@@ -149,11 +148,20 @@ const Settings = ({ refresh }) => {
             headers: { "Content-Type": "multipart/form-data" },
           });
           if (response.data.banner) {
-            setFormData((prev) => ({ ...prev, banner: response.data.banner }));
+            updatedBanner = response.data.banner;
+            setFormData((prev) => ({ ...prev, banner: updatedBanner }));
           }
           setSelectedBannerFile(null);
           setBannerPreview(null);
         }
+
+        // 3. EN SON BİLGİLERİ GÜNCELLE (Böylece resimler silinmez!)
+        await api.put("/profile/update-info", {
+          name: formData.name,
+          title: formData.title,
+          avatar: updatedAvatar, // Mevcut veya yeni resmi de yolla ki silinmesin
+          banner: updatedBanner  // Mevcut veya yeni kapağı da yolla ki silinmesin
+        });
 
         if (refresh) await refresh();
         showMessage("success", "Profil bilgileriniz başarıyla güncellendi.");
@@ -331,7 +339,7 @@ const Settings = ({ refresh }) => {
                 </div>
               )}
 
-              {/* DİĞER SEKMELER (SABİT KALDI) */}
+              {/* DİĞER SEKMELER */}
               {activeTab === "timer" && (
                 <div className="animate-fadeIn">
                   <h2 className="text-xl font-bold mb-6 text-slate-200">Çalışma ve Mola Süreleri</h2>
@@ -353,11 +361,16 @@ const Settings = ({ refresh }) => {
                 <div className="animate-fadeIn">
                   <h2 className="text-xl font-bold mb-6 text-slate-200">Bildirimler ve Ses</h2>
                   <div className="space-y-4">
-                    {['Sesler', 'Bildirimler', 'tickSoundEnabled'].map((field) => (
-                      <div key={field} className="flex items-center justify-between p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl">
-                        <span className="font-medium text-slate-200 capitalize">{field.replace(/([A-Z])/g, ' $1')}</span>
+                    {/* BİLDİRİMLER BUG'I DÜZELTİLDİ: State isimleriyle tam uyumlu hale getirildi */}
+                    {[
+                      { id: 'soundEnabled', label: 'Uygulama Sesleri' },
+                      { id: 'notificationsEnabled', label: 'Bildirimler' },
+                      { id: 'tickSoundEnabled', label: 'Saat Tik Sesi' }
+                    ].map((field) => (
+                      <div key={field.id} className="flex items-center justify-between p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl">
+                        <span className="font-medium text-slate-200">{field.label}</span>
                         <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" name={field} checked={formData[field]} onChange={handleChange} className="sr-only peer" />
+                          <input type="checkbox" name={field.id} checked={formData[field.id]} onChange={handleChange} className="sr-only peer" />
                           <div className="w-11 h-6 bg-slate-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-indigo-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                         </label>
                       </div>
@@ -367,49 +380,48 @@ const Settings = ({ refresh }) => {
               )}
 
               {activeTab === "account" && (
-  <div className="animate-fadeIn">
-    <h2 className="text-xl font-bold mb-6 text-slate-200">Şifre Değiştirme</h2>
-    <div className="space-y-4 mb-8">
-      {/* State anahtarlarını dizi olarak dönüyoruz */}
-      {[
-        { id: 'oldPassword', label: 'Eski Şifre' },
-        { id: 'newPassword', label: 'Yeni Şifre' },
-        { id: 'confirmPassword', label: 'Yeni Şifre (Tekrar)' }
-      ].map((field) => (
-        <div key={field.id}>
-          <label className="block text-sm font-medium text-slate-400 mb-1.5">
-            {field.label}
-          </label>
-          <input 
-            type="password" 
-            name={field.id} // State'deki anahtar (oldPassword vb.)
-            value={passwords[field.id] || ""} // undefined uyarısını önlemek için fallback
-            onChange={handlePasswordChange} 
-            className="w-full md:w-2/3 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500 transition-all" 
-          />
-        </div>
-      ))}
-      
-      <button 
-        onClick={submitPasswordChange} 
-        disabled={!passwords.oldPassword || !passwords.newPassword || !passwords.confirmPassword || isSaving} 
-        className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20"
-      >
-        {isSaving ? "Güncelleniyor..." : "Şifreyi Güncelle"}
-      </button>
-    </div>
+                <div className="animate-fadeIn">
+                  <h2 className="text-xl font-bold mb-6 text-slate-200">Şifre Değiştirme</h2>
+                  <div className="space-y-4 mb-8">
+                    {[
+                      { id: 'oldPassword', label: 'Eski Şifre' },
+                      { id: 'newPassword', label: 'Yeni Şifre' },
+                      { id: 'confirmPassword', label: 'Yeni Şifre (Tekrar)' }
+                    ].map((field) => (
+                      <div key={field.id}>
+                        <label className="block text-sm font-medium text-slate-400 mb-1.5">
+                          {field.label}
+                        </label>
+                        <input 
+                          type="password" 
+                          name={field.id} 
+                          value={passwords[field.id] || ""} 
+                          onChange={handlePasswordChange} 
+                          className="w-full md:w-2/3 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500 transition-all" 
+                        />
+                      </div>
+                    ))}
+                    
+                    <button 
+                      onClick={submitPasswordChange} 
+                      disabled={!passwords.oldPassword || !passwords.newPassword || !passwords.confirmPassword || isSaving} 
+                      className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20"
+                    >
+                      {isSaving ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+                    </button>
+                  </div>
 
-    <div className="pt-8 mt-8 border-t border-slate-800">
-      <h3 className="text-red-400 font-bold mb-2">Tehlikeli Bölge</h3>
-      <button 
-        onClick={handleDeleteAccount} 
-        className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold transition-all"
-      >
-        Hesabımı Kalıcı Olarak Sil
-      </button>
-    </div>
-  </div>
-)}
+                  <div className="pt-8 mt-8 border-t border-slate-800">
+                    <h3 className="text-red-400 font-bold mb-2">Tehlikeli Bölge</h3>
+                    <button 
+                      onClick={handleDeleteAccount} 
+                      className="px-6 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold transition-all"
+                    >
+                      Hesabımı Kalıcı Olarak Sil
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {activeTab !== "account" && (
                 <div className="mt-auto pt-8 flex justify-end">

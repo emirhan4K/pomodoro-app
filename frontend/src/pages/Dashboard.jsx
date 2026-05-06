@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 import { usePomodoro } from '../context/PomodoroContext';
+import CongratulationsModal from '../components/CongratulationsModal';
 
 // --- STATİK (MOCK) ODA VERİLERİ ---
 const mockRooms = [
@@ -51,15 +52,18 @@ const mockRooms = [
 ];
 
 const Dashboard = ({ profile, notificationCount }) => {
+  // Context'ten gelen veriler (showCongrats dahil)
   const { 
     timeLeft, isActive, selectedMinutes, 
-    toggleTimer, handleReset, handleDurationSelect 
+    toggleTimer, handleReset, handleDurationSelect,
+    showCongrats, setShowCongrats
   } = usePomodoro();
 
   const navigate = useNavigate();
 
   // --- YENİ ODA KURMA STATE'LERİ ---
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
   const [formData, setFormData] = useState({
     roomName: '',
     description: '',
@@ -386,6 +390,14 @@ const Dashboard = ({ profile, notificationCount }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* YENİ EKLENEN: POMODORO BİTİŞ MODALI (TEBRİKLER EKRANI) */}
+      {showCongrats && (
+        <CongratulationsModal 
+          onClose={() => setShowCongrats(false)} 
+          duration={selectedMinutes} 
+        />
       )}
 
     </div>

@@ -1,53 +1,49 @@
 const mongoose = require("mongoose");
 
 const roomSchema = new mongoose.Schema({
-    owner:{ //Odayı açan
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User",
-        required:true
+    owner: { 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     },
-    roomName:{
-        type:String,
-        required:true,
-        trim:true,
-        minlength: [3, "Oda adı en az 3 karakter olmalıdır"],
-        maxlength: [30, "Oda adı en fazla 30 karakter olabilir"]
+    roomName: {
+        type: String,
+        required: true,
+        trim: true
     },
-    description:{
-        type:String,
-        required:true,
-        trim:true,
-        maxlength: [200, "Açıklama çok uzun"]
+    description: {
+        type: String,
+        required: true,
+        trim: true
     },
-    roomAvatar:{
-        type:String,
-        default:"default-avatar.png"
+    roomAvatar: {
+        type: String,
+        default: "default-room.png"
     },
-    roomBanner:{
-        type:String,
-        default:"default-banner.png"
+    roomBanner: {
+        type: String,
+        default: "default-room-banner.png"
     },
-    isPrivate:{
-        type:Boolean,
-        default:false
+    isPrivate: {
+        type: Boolean,
+        default: false
     },
-    roomPassword: { // Eğer isPrivate true ise burası dolacak
+    roomPassword: { 
         type: String,
         select: false 
     },
     capacity: {
         type: Number,
-        default: 10, 
-        max: [50, "Oda en fazla 50 kişilik olabilir"]
+        default: 10
     },
-    members: [{ //Odadaki üyeler
+    members: [{ 
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     }],
-    isActive: { // Oda o an açık mı?
+    isActive: { 
         type: Boolean,
         default: true
-    },
-},{timestamps:true});
+    }
+}, { timestamps: true });
 
-module.exports = mongoose.model("Rooms", roomSchema);
+module.exports = mongoose.model("Room", roomSchema);
