@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RoomService } from "../services/api.services";
+import api from "../services/api"; // Profil ve istatistik güncellemeleri için api'yi dahil ettik
 
-const ActiveRoom = () => {
+const ActiveRoom = ({ profile }) => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Oda Durumları
   const [message, setMessage] = useState("");
   const [roomData, setRoomData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLeaving, setIsLeaving] = useState(false);
 
+  // --- POMODORO SAYAÇ DURUMLARI ---
+  const [selectedMinutes, setSelectedMinutes] = useState(25);
+  const [timeLeft, setTimeLeft] = useState(25 * 60); // Saniye cinsinden
+  const [isActive, setIsActive] = useState(false);
+
+  // Odayı Getir
   useEffect(() => {
     const fetchRoomDetails = async () => {
       try {
@@ -18,7 +26,7 @@ const ActiveRoom = () => {
         setRoomData(response?.room || response?.data || response);
       } catch (error) {
         console.error("Oda verisi alınamadı:", error);
-        navigate("/rooms"); // Hata alırsak lobiye geri atar
+        navigate("/rooms"); 
       } finally {
         setIsLoading(false);
       }
@@ -26,6 +34,69 @@ const ActiveRoom = () => {
 
     if (id) fetchRoomDetails();
   }, [id, navigate]);
+
+  // --- POMODORO MANTIĞI (GERİ SAYIM) ---
+  useEffect(() => {
+    let interval = null;
+
+    if (isActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    } else if (isActive && timeLeft === 0) {
+      clearInterval(interval);
+      handlePomodoroComplete(); // Süre bitince istatistiklere yaz!
+    }
+
+    return () => clearInterval(interval);
+  }, [isActive, timeLeft]);
+
+  // Süre Bittiğinde Çalışacak Fonksiyon (İstatistik ve Level Güncelleme)
+  const handlePomodoroComplete = async () => {
+    setIsActive(false);
+    
+    try {
+      // DİKKAT: Buradaki rotayı backend'de istatistikleri kaydettiğin kendi rotana göre uyarla!
+      // Örneğin: '/statistics/add' veya '/pomodoro/complete' olabilir.
+      await api.post('/statistics/pomodoro/complete', { 
+        duration: selectedMinutes,
+        roomId: id // İstatistiklere "Bu çalışma şu odada yapıldı" bilgisini de ekleyebilirsin
+      });
+
+      // Opsiyonel: Ses çal
+      // const audio = new Audio('/alarm.mp3'); audio.play();
+
+      alert(`🎉 Harika! ${selectedMinutes} dakikalık odaklanma seansı tamamlandı. Tecrübe puanı (XP) kazandın!`);
+      
+      // Sayacı başa sar
+      setTimeLeft(selectedMinutes * 60);
+    } catch (error) {
+      console.error("İstatistik kaydedilemedi:", error);
+      alert("Seans bitti ancak istatistiklere kaydedilirken bir sorun oluştu.");
+    }
+  };
+
+  const handleTimeSelect = (mins) => {
+    if (isActive) return; // Sayaç çalışırken dakika değiştirilemez
+    setSelectedMinutes(mins);
+    setTimeLeft(mins * 60);
+  };
+
+  const toggleTimer = () => {
+    setIsActive(!isActive);
+  };
+
+  const resetTimer = () => {
+    setIsActive(false);
+    setTimeLeft(selectedMinutes * 60);
+  };
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+  // ------------------------------------
 
   const handleLeaveRoom = async () => {
     if (isLeaving) return;
@@ -41,12 +112,13 @@ const ActiveRoom = () => {
   const handleDeleteRoom = async () => {
     if (window.confirm("Bu odayı kalıcı olarak silmek istediğine emin misin? Bu işlem geri alınamaz!")) {
       try {
+        setIsLeaving(true);
         await RoomService.deleteRoom(id);
-        navigate("/rooms"); 
+        navigate("/rooms");
       } catch (error) {
         console.error("Silme hatası:", error);
-        const errorMessage = error.response?.data?.message || "Oda silinirken bir hata oluştu!";
-        alert(errorMessage);
+        alert("Oda silinirken bir hata oluştu!");
+        setIsLeaving(false);
       }
     }
   };
@@ -67,9 +139,11 @@ const ActiveRoom = () => {
   const membersList = roomData.members || [];
   const activeCount = membersList.length;
   const categoryName = roomData.category || "ÇALIŞMA ALANI";
+  const isOwner = profile && (profile.id === roomData.owner || profile._id === roomData.owner);
 
   return (
     <div className="h-screen flex flex-col bg-[#0b0e14] text-white overflow-hidden font-sans">
+      {/* HEADER */}
       <header className="relative h-20 shrink-0 flex items-center px-6 border-b border-slate-800/60 z-10 bg-[#0f121a]">
         <div className="relative z-10 flex flex-1 justify-between items-center">
           <div className="flex items-center gap-4">
@@ -95,10 +169,23 @@ const ActiveRoom = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {isOwner && (
+              <button
+                onClick={handleDeleteRoom}
+                disabled={isLeaving}
+                title="Odayı Kalıcı Olarak Sil"
+                className="p-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/30 rounded-xl transition-all disabled:opacity-50 group"
+              >
+                <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
+
             <button
               onClick={handleLeaveRoom}
               disabled={isLeaving}
-              className="px-5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/30 rounded-xl text-sm font-bold transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
+              className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
             >
               {isLeaving ? "Ayrılıyor..." : "Odadan Ayrıl"}
             </button>
@@ -106,9 +193,8 @@ const ActiveRoom = () => {
         </div>
       </header>
 
-      
-
       <div className="flex flex-1 overflow-hidden">
+        {/* SOL PANEL: SOHBET & ÜYELER */}
         <div className="w-80 border-r border-slate-800/60 bg-[#0f121a] flex flex-col shrink-0">
           <div className="p-5 border-b border-slate-800/60 shrink-0">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">ODADAKİLER ({activeCount})</h3>
@@ -147,7 +233,7 @@ const ActiveRoom = () => {
                   </span>
                 </div>
                 <p className="text-sm text-slate-300 mt-0.5 leading-relaxed bg-[#131720] inline-block px-3 py-2 rounded-2xl rounded-tl-none border border-slate-800/50">
-                  {roomData.roomName || "Bu"} odasına hoş geldin! Sohbet ve gerçek zamanlı senkronizasyon özelliği yakında eklenecektir.
+                  {roomData.roomName || "Bu"} odasına hoş geldin! Odaklanmaya başlamak için sağ taraftaki sayacı kullanabilirsin.
                 </p>
               </div>
             </div>
@@ -167,18 +253,64 @@ const ActiveRoom = () => {
           </div>
         </div>
 
+        {/* SAĞ PANEL: POMODORO SAYAÇ */}
         <div className="flex-1 flex items-center justify-center relative bg-[#0b0e14]">
-          <div className="absolute w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[120px] pointer-events-none"></div>
+          <div className={`absolute w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none transition-colors duration-1000 ${isActive ? 'bg-orange-600/10' : 'bg-indigo-600/5'}`}></div>
+          
           <div className="z-10 flex flex-col items-center">
-            <div className="w-[450px] h-[450px] rounded-full border-[20px] border-indigo-900/20 flex flex-col items-center justify-center bg-[#11151f] shadow-2xl shadow-black/50">
-              <span className="text-[120px] font-black tracking-tighter text-white drop-shadow-lg leading-none">25:00</span>
-              <p className="text-sm font-bold text-indigo-400 uppercase tracking-[0.4em] mt-6">Ortak Odak Seansı</p>
+            
+            {/* Dakika Seçici (Sadece duraklatılmışken değiştirilebilir) */}
+            <div className="flex gap-3 mb-8">
+              {[1, 25, 45, 50].map((min) => (
+                <button
+                  key={min}
+                  onClick={() => handleTimeSelect(min)}
+                  disabled={isActive}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    selectedMinutes === min 
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' 
+                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white disabled:opacity-50 disabled:hover:bg-slate-800/50'
+                  }`}
+                >
+                  {min} Dk
+                </button>
+              ))}
             </div>
-            <div className="flex gap-4 mt-16">
-              <button className="px-12 py-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black tracking-widest transition-all shadow-lg shadow-indigo-600/20 hover:-translate-y-1 hover:shadow-indigo-500/40 text-lg">
-                SEANSA KATIL
+
+            {/* Dev Sayaç */}
+            <div className="w-[450px] h-[450px] rounded-full border-[20px] border-[#161b22] flex flex-col items-center justify-center bg-[#11151f] shadow-2xl shadow-black/50 relative overflow-hidden">
+              <span className={`text-[120px] font-black tracking-tighter drop-shadow-lg leading-none transition-colors duration-500 ${isActive ? 'text-orange-400' : 'text-white'}`}>
+                {formatTime(timeLeft)}
+              </span>
+              <p className="text-sm font-bold text-slate-500 uppercase tracking-[0.4em] mt-6">
+                {isActive ? "Odaklanılıyor..." : "Ortak Odak Seansı"}
+              </p>
+            </div>
+
+            {/* Kontrol Butonları */}
+            <div className="flex gap-4 mt-12">
+              <button 
+                onClick={toggleTimer}
+                className={`w-48 py-5 text-white rounded-2xl font-black tracking-widest transition-all shadow-lg text-lg hover:-translate-y-1 ${
+                  isActive 
+                  ? 'bg-orange-500 hover:bg-orange-400 shadow-orange-500/20' 
+                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
+                }`}
+              >
+                {isActive ? "DURAKLAT" : "BAŞLAT"}
+              </button>
+
+              <button 
+                onClick={resetTimer}
+                title="Sayacı Sıfırla"
+                className="px-6 py-5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl transition-all shadow-lg hover:-translate-y-1"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
               </button>
             </div>
+
           </div>
         </div>
       </div>
