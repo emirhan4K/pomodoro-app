@@ -8,10 +8,10 @@ class RoomController {
       const roomData = req.body || {};
       if (req.files) {
         if (req.files["avatar"]) {
-          roomData.roomAvatar = `/uploads/rooms/avatars/${req.files["avatar"][0].filename}`;
+          roomData.roomAvatar = `/public/uploads/rooms/avatars/${req.files["avatar"][0].filename}`;
         }
         if (req.files["banner"]) {
-          roomData.roomBanner = `/uploads/rooms/banners/${req.files["banner"][0].filename}`;
+          roomData.roomBanner = `/public/uploads/rooms/banners/${req.files["banner"][0].filename}`;
         }
       }
       const result = await this.roomService.createRoom(userId, roomData);
