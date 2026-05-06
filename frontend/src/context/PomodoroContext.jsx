@@ -10,7 +10,6 @@ export const PomodoroProvider = ({ children }) => {
   const [isActive, setIsActive] = useState(false);
   const [sessionId, setSessionId] = useState(null);
 
-  // YENİ: Tebrikler Modalı için State ekledik!
   const [showCongrats, setShowCongrats] = useState(false);
 
   const { fetchProfile } = useAuth();
@@ -22,11 +21,7 @@ export const PomodoroProvider = ({ children }) => {
     } else if (timeLeft === 0 && isActive) {
       clearInterval(interval);
       setIsActive(false);
-
-      // SÜRE BİTTİ: Ekrana kutlama modalını çıkart! 🚀
       setShowCongrats(true);
-
-      // SÜRE BİTTİ: Arka planda backend'e bildir ve XP'yi güncelle
       if (sessionId) {
         PomodoroService.updateStatus(sessionId, "completed")
           .then(() => {

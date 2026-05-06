@@ -5,7 +5,6 @@ import { usePomodoro } from '../context/PomodoroContext';
 import CongratulationsModal from '../components/CongratulationsModal';
 
 const Dashboard = ({ profile, notificationCount }) => {
-  // Sadece Dashboard'un ihtiyacı olan state'ler (Odalarla ilgili her şey silindi)
   const { 
     timeLeft, isActive, selectedMinutes, 
     toggleTimer, handleReset, handleDurationSelect,
@@ -30,11 +29,8 @@ const Dashboard = ({ profile, notificationCount }) => {
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f111a] text-slate-800 dark:text-white transition-colors duration-500 pb-20 font-sans">
       <div className="max-w-7xl mx-auto px-4">
         <Navbar profile={profile} notificationCount={notificationCount} />
-
-        {/* POMODORO SAYACI (Odakoo'nun Kalbi) */}
         <div className="flex flex-col items-center justify-center mt-12 mb-20">
           
-          {/* Süre Seçici */}
           <div className="flex items-center gap-1 sm:gap-2 mb-10 p-1.5 bg-white/50 dark:bg-[#151925]/80 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-inner">
             {durations.map((mins) => (
               <button
