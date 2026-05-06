@@ -1,5 +1,4 @@
 class RoomMapper {
-    // Tek bir odayı temizlemek için
     static toDTO(room) {
         if (!room) return null;
         
@@ -10,24 +9,26 @@ class RoomMapper {
             capacity: room.capacity,
             isPrivate: room.isPrivate,
             isActive: room.isActive,
+            roomAvatar: room.roomAvatar || "default-room.png",
+            roomBanner: room.roomBanner || "default-room-banner.png",
             category: room.category || "Çalışma Alanı", 
-
-            owner: room.owner?._id ? room.owner._id.toString() : room.owner?.toString(),
+            owner: room.owner ? (room.owner._id ? room.owner._id.toString() : room.owner.toString()) : null,
+            
             members: room.members ? room.members.map(member => {
-                if (typeof member === 'object' && member !== null) {
+                if (member && typeof member === 'object') {
                     return {
-                        id: member._id ? member._id.toString() : member.id,
+                        id: member._id ? member._id.toString() : (member.id || member),
                         username: member.username || member.name || "Kullanıcı"
                     };
                 }
-                return member.toString();
-            }) : [],
+                return member ? member.toString() : null;
+            }).filter(m => m !== null) : [],
             
             createdAt: room.createdAt
         };
     }
     static toDTOList(rooms) {
-        return rooms.map(room => this.toDTO(room));
+        return (rooms || []).map(room => this.toDTO(room));
     }
 }
 

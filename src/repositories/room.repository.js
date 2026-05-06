@@ -5,6 +5,9 @@ class RoomRepository extends BaseRepository{
     constructor(){
         super(Rooms)
     }
+    async findAll(query = {}) {
+  return await this.model.find(query).populate('owner', 'username avatar');
+}
     async findActiveRooms(){
         return await this.model.find({ isActive: true }).populate("owner", "username avatar").populate("members", "username avatar");
     }
@@ -22,6 +25,9 @@ class RoomRepository extends BaseRepository{
             {$pull : { members: userId }},
             {new:true}
         )
+    }
+    async deleteRoomById(roomId) {
+        return await this.model.findByIdAndDelete(roomId);
     }
 }
 

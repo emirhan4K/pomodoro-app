@@ -10,6 +10,7 @@ import Statistics from "./pages/Statistics";
 import Settings from "./pages/Settings";
 import ActiveRoom from "./pages/ActiveRoom";
 import { PomodoroProvider } from "./context/PomodoroContext";
+import Rooms from './pages/Room';
 
 function App() {
   const [profile, setProfile] = useState(null);
@@ -130,6 +131,11 @@ function App() {
             path="/room/:id"
             element={profile ? <ActiveRoom /> : <Navigate to="/" />}
           />
+          <Route 
+            path="/rooms" 
+            element={profile ? <Rooms /> : <Navigate to="/" />} 
+          />
+
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </PomodoroProvider>

@@ -1,26 +1,18 @@
+// src/validations/room.validation.js
 const Joi = require("joi");
 
 const createRoomSchema = Joi.object({
-    roomName: Joi.string().min(3).max(30).required().messages({
-        "string.empty": "Oda adı boş bırakılamaz",
-        "string.min": "Oda adı en az 3 karakter olmalıdır"
-    }),
-    description: Joi.string().max(200).required().messages({
-        "string.empty": "Açıklama boş bırakılamaz"
-    }),
-    capacity: Joi.number().min(2).max(50).optional(),
-    isPrivate: Joi.boolean().default(false),
-    roomPassword: Joi.any().when('isPrivate', {
-        is: true, // Eğer oda gizliyse
-        then: Joi.string().min(4).required().messages({
-            "string.empty": "Gizli odalar için şifre girmek zorunludur!",
-            "string.min": "Şifre en az 4 karakter olmalıdır!",
-            "any.required": "Gizli odalar için şifre zorunludur!"
-        }),
-        otherwise: Joi.any().strip() 
-    })
-});
+  roomName: Joi.string().required(),
+  description: Joi.string().required(),
+  // Frontend'den gelen stringleri sayıya çevirmesine izin ver
+  capacity: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
+  // String olan "false"/"true" değerlerini boolean'a çevir
+  isPrivate: Joi.alternatives().try(Joi.boolean(), Joi.string()).default(false),
+  roomPassword: Joi.any().optional(),
+  
+  // Bu iki alanı MUTLAKA ekle, yoksa Multer'ın eklediği alanlar Joi'yi patlatır!
+  roomAvatar: Joi.any().optional(),
+  roomBanner: Joi.any().optional()
+}).unknown(true); // Frontend'den gelen fazladan/bilinmeyen alanları reddetme, yoksay!
 
-module.exports = {
-    createRoomSchema
-};
+module.exports = { createRoomSchema };

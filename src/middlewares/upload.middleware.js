@@ -3,11 +3,22 @@ const path = require('path');
 const fs = require('fs');
 const BadRequestException = require('../exceptions/BadRequestException');
 
-
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const folder = file.fieldname === 'banner' ? 'banners' : 'avatars';
-    const uploadPath = path.join(__dirname, `../public/uploads/${folder}`);
+    // İsteğin geldiği URL 'rooms' içeriyor mu bakıyoruz
+    const isRoom = req.originalUrl.includes('/rooms');
+    
+    // Fieldname 'banner' içeriyorsa banner, yoksa avatar klasörü
+    const isBanner = file.fieldname.toLowerCase().includes('banner');
+    
+    let folderPath = isBanner ? 'banners' : 'avatars';
+    
+    // Eğer istek odadan geliyorsa başına 'rooms/' ekle
+    if (isRoom) {
+      folderPath = `rooms/${folderPath}`;
+    }
+
+    const uploadPath = path.join(__dirname, `../public/uploads/${folderPath}`);
 
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
@@ -17,7 +28,9 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname);
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `${file.fieldname}_${req.user.id}_${uniqueSuffix}${ext}`);
+    // User kimliği veya anonim
+    const userId = req.user ? req.user.id : 'user';
+    cb(null, `${file.fieldname}_${userId}_${uniqueSuffix}${ext}`);
   }
 });
 
@@ -30,16 +43,14 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const uploadAvatar = multer({
+const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 } 
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB Limit
 });
 
-const uploadBanner = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } 
-});
-
-module.exports = { uploadAvatar, uploadBanner };
+module.exports = {
+  uploadAvatar: upload, 
+  uploadBanner: upload,
+  upload: upload 
+};

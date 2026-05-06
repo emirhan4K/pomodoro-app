@@ -21,3 +21,16 @@ export const PomodoroService = {
   updateStatus: (id, status) => api.patch(`/pomodoros/${id}/status`, { status }),
   getHistory: () => api.get('/pomodoros'),
 };
+
+export const RoomService = {
+  getAllRooms: async () => (await api.get('/rooms')).data,
+  getRoomById: async (id) => (await api.get(`/rooms/${id}`)).data,
+  createRoom: async (data) => (await api.post('/rooms', data)).data,
+  joinRoom: async (id, password) => (await api.post(`/rooms/${id}/join`, { password })).data,
+  leaveRoom: async (id) => (await api.post(`/rooms/${id}/leave`)).data,
+  deleteRoom: async (roomId) => {
+    const response = await api.delete(`/rooms/${roomId}`);
+    return response.data;
+  },
+};
+
