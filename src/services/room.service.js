@@ -1,6 +1,6 @@
 const BadRequestException = require("../exceptions/BadRequestException");
 const UnauthorizedException = require("../exceptions/UnauthorizedException");
-const { hashPassword} = require("../utils/hash.utils");
+const { hashPassword,comparePassword} = require("../utils/hash.utils");
 const RoomMapper = require("../mappers/room.mapper");
 
 class RoomService{
@@ -29,6 +29,9 @@ class RoomService{
             throw new BadRequestException("Böyle bir oda bulunamadı!");
         }
         return RoomMapper.toDTO(room);
+    }
+    async getAllRooms(userId,roomId){
+        const user =
     }
 }
 
