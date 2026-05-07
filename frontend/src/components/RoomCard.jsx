@@ -16,10 +16,9 @@ const RoomCard = ({ room, onJoinSuccess, onDeleteSuccess, currentUser }) => {
   const isFull = members.length >= (room.capacity || 10);
   const roomId = room.id || room._id;
 
-  // Güvenlik: Kullanıcı bu odanın sahibi mi?
-  const isOwner = currentUser && (currentUser.id === room.owner || currentUser._id === room.owner);
-
-  // BOZDUĞUM YERİ TAMAMEN SENİN ORİJİNAL KODUNA GERİ DÖNDÜRDÜM
+const ownerId = room.owner?._id || room.owner?.id || room.owner;
+  const currentUserId = currentUser?.id || currentUser?._id;
+  const isOwner = currentUserId && ownerId && (currentUserId.toString() === ownerId.toString());
   const bannerUrl = room.roomBanner === "default-room-banner.png" 
     ? "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop" 
     : (room.roomBanner.startsWith('/') ? `http://localhost:3000${room.roomBanner}` : room.roomBanner);
