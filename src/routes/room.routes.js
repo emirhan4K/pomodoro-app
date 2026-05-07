@@ -17,7 +17,7 @@ router.post(
     validate(createRoomSchema), 
     roomController.createRoom
 );
-router.get("/:id", roomController.getRoomById);
+router.get("/:slug", roomController.getRoomBySlug);
 router.post("/:roomId/join", roomController.joinRoom);
 router.post("/:roomId/leave", roomController.leaveRoom);
 router.put("/:roomId/avatar", uploadAvatar.single('avatar'), roomController.uploadAvatar);

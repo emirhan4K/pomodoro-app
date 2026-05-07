@@ -4,6 +4,7 @@ const { hashPassword, comparePassword } = require("../utils/hash.utils");
 const RoomMapper = require("../mappers/room.mapper");
 const fs = require("fs");
 const path = require("path");
+const slugify = require("slugify");
 
 class RoomService {
   constructor({ roomRepository, userRepository }) {
@@ -15,6 +16,13 @@ class RoomService {
 
     roomData.owner = userId;
     roomData.members = [userId];
+
+    if (roomData.roomName) {
+      const baseSlug = slugify(roomData.roomName, { lower: true, strict: true });
+      const randomNum = Math.floor(1000 + Math.random() * 9000); 
+      roomData.slug = `${baseSlug}-${randomNum}`;
+    }
+
     if (roomData.isPrivate === true || roomData.isPrivate === "true") {
       const hash = await hashPassword(roomData.roomPassword);
       roomData.roomPassword = hash;
@@ -33,8 +41,8 @@ class RoomService {
       .sort({ createdAt: -1 });
     return RoomMapper.toDTOList(rooms);
   }
-  async getRoomById(roomId) {
-    const room = await this.roomRepository.findById(roomId).populate("members");
+  async getRoomBySlug(slug) {
+    const room = await this.roomRepository.findBySlug(slug);
 
     if (!room) {
       throw new BadRequestException("Böyle bir oda bulunamadı!");
@@ -76,7 +84,6 @@ class RoomService {
     if (!room) {
       throw new BadRequestException("Oda bulunamadı!");
     }
-    //şifreyi bilen veya açık odaya gelen herkes girebilir
     await this.roomRepository.removeMember(roomId, userId);
     return { message: "Odadan başarıyla ayrıldınız." };
   }
@@ -84,7 +91,6 @@ class RoomService {
     if (!avatarFilename)
       throw new BadRequestException("Lütfen geçerli bir resim dosyası seçin!");
 
-    // 1. Odayı bul ve sahibinin bu kullanıcı olduğundan emin ol
     const room = await this.roomRepository.model.findOne({
       _id: roomId,
       owner: userId,
@@ -93,8 +99,6 @@ class RoomService {
       throw new BadRequestException(
         "Oda bulunamadı veya bu işlemi yapmaya yetkiniz yok!",
       );
-
-    // 2. Eski resmi sil (Eğer default değilse)
     if (room.roomAvatar && room.roomAvatar !== "default-room.png") {
       const oldImagePath = path.join(
         __dirname,
@@ -104,11 +108,9 @@ class RoomService {
       if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
     }
 
-    // 3. Yeni resmi kaydet (Frontend'in tam yolu okuyabilmesi için başına /uploads ekliyoruz)
     room.roomAvatar = `/uploads/avatars/${avatarFilename}`;
     await room.save();
 
-    // 4. RoomMapper ile odanın güncel halini dön (Profil mapper'ı değil!)
     return RoomMapper.toDTO(room);
   }
   async updateBanner(roomId, userId, bannerFilename) {

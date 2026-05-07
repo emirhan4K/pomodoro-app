@@ -5,7 +5,7 @@ import { usePomodoro } from "../context/PomodoroContext";
 import RoomCongratsModal from "../components/RoomCongratsModal"; // Yeni bileşeni bağladık
 
 const ActiveRoom = ({ profile }) => {
-  const { id } = useParams();
+  const { id: roomSlug } = useParams();
   const navigate = useNavigate();
 
   const [roomData, setRoomData] = useState(null);
@@ -30,13 +30,41 @@ const ActiveRoom = ({ profile }) => {
   useEffect(() => {
     const fetchRoomDetails = async () => {
       try {
-        const response = await RoomService.getRoomById(id);
+        const response = await RoomService.getRoomBySlug(roomSlug);
         setRoomData(response?.room || response?.data || response);
-      } catch (error) { navigate("/rooms"); } 
+      } catch (error)  { console.error("Oda bulunamadı", error); navigate("/rooms"); } 
       finally { setIsLoading(false); }
     };
-    if (id) fetchRoomDetails();
-  }, [id]);
+   if (roomSlug) fetchRoomDetails();
+  }, [roomSlug, navigate]);
+
+  const handleLeaveRoom = async () => {
+    if (isLeaving || !roomData) return;
+    try {
+      setIsLeaving(true);
+      const realRoomId = roomData.id || roomData._id; // Arka plan için gerçek ID lazım
+      await RoomService.leaveRoom(realRoomId);
+      navigate("/rooms");
+    } catch (error) {
+      navigate("/rooms");
+    }
+  };
+
+  const handleDeleteRoom = async () => {
+    if (!roomData) return;
+    if (window.confirm("Bu odayı kalıcı olarak silmek istediğine emin misin? Bu işlem geri alınamaz!")) {
+      try {
+        setIsLeaving(true);
+        const realRoomId = roomData.id || roomData._id; // Arka plan için gerçek ID lazım
+        await RoomService.deleteRoom(realRoomId);
+        navigate("/rooms");
+      } catch (error) {
+        console.error("Silme hatası:", error);
+        alert("Oda silinirken bir hata oluştu!");
+        setIsLeaving(false);
+      }
+    }
+  };
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");

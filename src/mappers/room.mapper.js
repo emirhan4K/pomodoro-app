@@ -4,6 +4,7 @@ class RoomMapper {
         
         return {
             id: room._id ? room._id.toString() : room.id,
+            slug: room.slug,
             roomName: room.roomName,
             description: room.description,
             capacity: room.capacity,

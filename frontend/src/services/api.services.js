@@ -24,7 +24,10 @@ export const PomodoroService = {
 
 export const RoomService = {
   getAllRooms: async () => (await api.get('/rooms')).data,
-  getRoomById: async (id) => (await api.get(`/rooms/${id}`)).data,
+  getRoomBySlug: async (slug) => {
+    const response = await api.get(`/rooms/${slug}`);
+    return response.data;
+  },
   createRoom: async (data) => (await api.post('/rooms', data)).data,
   joinRoom: async (id, password) => (await api.post(`/rooms/${id}/join`, { password })).data,
   leaveRoom: async (id) => (await api.post(`/rooms/${id}/leave`)).data,

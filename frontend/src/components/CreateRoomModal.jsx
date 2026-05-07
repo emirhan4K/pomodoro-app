@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 const CreateRoomModal = ({ onClose, onRoomCreated }) => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     roomName: '',
     description: '',
@@ -26,7 +27,15 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return; // Çift tıklama koruması
+
+    if (!formData.roomName.trim() || !formData.description.trim()) {
+      alert("Oda adı ve açıklama boş bırakılamaz!");
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
       const submitData = new FormData();
       
       submitData.append('roomName', formData.roomName);
@@ -38,21 +47,25 @@ const CreateRoomModal = ({ onClose, onRoomCreated }) => {
         submitData.append('roomPassword', formData.roomPassword);
       }
 
-     if (avatarFile) submitData.append('avatar', avatarFile);
-if (bannerFile) submitData.append('banner', bannerFile);
+      if (avatarFile) submitData.append('avatar', avatarFile);
+      if (bannerFile) submitData.append('banner', bannerFile);
 
       const response = await api.post('/rooms', submitData);
 
-      const newRoomId = response.data?.roomId || response.data?.id || response.data?._id;
+      // İŞTE YENİ SİSTEM: Backend'den artık 'slug' (isim tabanlı link) geliyor!
+      const newRoomSlug = response.data?.slug;
       
       if (onRoomCreated) onRoomCreated();
       onClose();
       
-      if (newRoomId) navigate(`/room/${newRoomId}`);
+      // Sayfayı ID'ye değil, tertemiz SLUG linkine yönlendiriyoruz
+      if (newRoomSlug) navigate(`/room/${newRoomSlug}`);
     } catch (err) {
       console.error(err);
       const errorMessage = err.response?.data?.message || err.response?.data?.error || "Oluşturulamadı!";
       alert("HATA: " + errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

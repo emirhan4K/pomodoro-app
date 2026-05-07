@@ -18,15 +18,16 @@ class RoomController {
       res.status(201).json({
         success: true,
         roomId: result.id || result._id,
+        slug: result.slug,
       });
     } catch (error) {
       next(error);
     }
   };
-  getRoomById = async (req, res, next) => {
+  getRoomBySlug = async (req, res, next) => {
     try {
-      const roomId = req.params.id;
-      const cleanRoom = await this.roomService.getRoomById(roomId);
+      const slug = req.params.slug; 
+      const cleanRoom = await this.roomService.getRoomBySlug(slug);
       res.status(200).json({ room: cleanRoom });
     } catch (error) {
       next(error);
@@ -60,7 +61,7 @@ class RoomController {
       const rooms = await this.roomService.getAllRooms();
       res.status(200).json(rooms || []);
     } catch (error) {
-      console.error("ODALARI GETİRİRKEN PATLADI:", error.message);
+      console.error("Odalar getirilirken bir sorun oluştu.", error.message);
       res.status(200).json([]);
     }
   };

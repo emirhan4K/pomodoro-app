@@ -1,49 +1,55 @@
 const mongoose = require("mongoose");
 
-const roomSchema = new mongoose.Schema({
-    owner: { 
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true
+const roomSchema = new mongoose.Schema(
+  {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
     roomName: {
-        type: String,
-        required: true,
-        trim: true
+      type: String,
+      required: true,
+      trim: true,
     },
+    slug: { type: String, unique: true },
     description: {
-        type: String,
-        required: true,
-        trim: true
+      type: String,
+      required: true,
+      trim: true,
     },
     roomAvatar: {
-        type: String,
-        default: "default-room.png"
+      type: String,
+      default: "default-room.png",
     },
     roomBanner: {
-        type: String,
-        default: "default-room-banner.png"
+      type: String,
+      default: "default-room-banner.png",
     },
     isPrivate: {
-        type: Boolean,
-        default: false
+      type: Boolean,
+      default: false,
     },
-    roomPassword: { 
-        type: String,
-        select: false 
+    roomPassword: {
+      type: String,
+      select: false,
     },
     capacity: {
-        type: Number,
-        default: 10
+      type: Number,
+      default: 10,
     },
-    members: [{ 
+    members: [
+      {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-    }],
-    isActive: { 
-        type: Boolean,
-        default: true
-    }
-}, { timestamps: true });
+        ref: "User",
+      },
+    ],
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { timestamps: true },
+);
 
 module.exports = mongoose.model("Room", roomSchema);

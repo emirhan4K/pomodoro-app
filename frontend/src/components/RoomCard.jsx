@@ -36,9 +36,11 @@ const RoomCard = ({ room, onJoinSuccess, onDeleteSuccess, currentUser }) => {
     try {
       setIsJoining(true);
       setError('');
-      await RoomService.joinRoom(roomId, password);
+
+      await RoomService.joinRoom(roomId, password); 
       if (onJoinSuccess) onJoinSuccess();
-      navigate(`/room/${roomId}`);
+
+      navigate(`/room/${room.slug}`); 
     } catch (err) {
       setError(err.response?.data?.message || "Giriş başarısız!");
       setIsJoining(false);
