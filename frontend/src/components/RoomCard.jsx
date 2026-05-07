@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { RoomService } from "../services/api.services";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
-import DeleteConfirmModal from "./DeleteConfirmModal"; // YENİ MODALIMIZI İÇERİ ALDIK
+import DeleteConfirmModal from "./DeleteConfirmModal"; 
+
 
 const RoomCard = ({ room, onJoinSuccess, onDeleteSuccess, currentUser }) => {
   const authContext = useAuth() || {};
@@ -30,6 +31,7 @@ const RoomCard = ({ room, onJoinSuccess, onDeleteSuccess, currentUser }) => {
   const roomOwnerId = room?.ownerId || room?.owner;
   
   const isOwner = Boolean(currentUserId && roomOwnerId && String(currentUserId) === String(roomOwnerId));
+  
 
   const bannerUrl =
     room.roomBanner === "default-room-banner.png"

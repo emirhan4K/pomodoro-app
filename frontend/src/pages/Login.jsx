@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AuthService } from '../services/api.services';
-import { useAuth } from '../context/AuthContext';
+import { AuthService } from "../services/api.services";
+import { useAuth } from "../context/AuthContext";
 
 const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState("");
@@ -9,7 +9,7 @@ const Login = ({ onLoginSuccess }) => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  
+
   // AuthContext'ten login fonksiyonumuzu çekiyoruz
   const { login } = useAuth();
 
@@ -21,10 +21,10 @@ const Login = ({ onLoginSuccess }) => {
     try {
       // api.post yerine oluşturduğumuz AuthService'i kullanıyoruz
       const response = await AuthService.login({ email, password });
-      
+
       // Context içindeki login fonksiyonu hem token'ı kaydeder hem de Profil/XP verisini çeker
       login(response.data.token);
-      
+
       if (onLoginSuccess) {
         await onLoginSuccess();
       }

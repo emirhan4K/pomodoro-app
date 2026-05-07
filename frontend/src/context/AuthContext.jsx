@@ -3,19 +3,27 @@ import { ProfileService } from '../services/api.services';
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth, AuthProvider içinde kullanılmalıdır.");
+  }
+  return context;
+}
+
+// 3. PROVIDER: Bunu da mutlaka EXPORT etmelisin!
+export function AuthProvider({ children }) {
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Kullanıcı bilgilerini ve XP/Level durumunu backend'den çeker
   const fetchProfile = async () => {
     try {
       const response = await ProfileService.getMe();
-      setUser(response.data); 
+      setProfile(response.data); 
     } catch (error) {
       console.log("Oturum süresi dolmuş veya giriş yapılmamış.");
       localStorage.removeItem('token');
-      setUser(null);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -32,19 +40,17 @@ export const AuthProvider = ({ children }) => {
 
   const login = (token) => {
     localStorage.setItem('token', token);
-    fetchProfile(); // Giriş yapınca hemen profili çek
+    fetchProfile();
   };
 
   const logout = () => {
     localStorage.removeItem('token');
-    setUser(null);
+    setProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, fetchProfile, loading }}>
+    <AuthContext.Provider value={{ profile, login, logout, fetchProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => useContext(AuthContext);
+}
