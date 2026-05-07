@@ -6,6 +6,7 @@ class RoomMapper {
             id: room._id ? room._id.toString() : room.id,
             slug: room.slug,
             roomName: room.roomName,
+            ownerId: room.owner && room.owner._id ? room.owner._id.toString() : (room.owner ? room.owner.toString() : null),
             description: room.description,
             capacity: room.capacity,
             isPrivate: room.isPrivate,

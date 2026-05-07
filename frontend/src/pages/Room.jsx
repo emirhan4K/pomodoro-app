@@ -4,7 +4,8 @@ import { RoomService } from '../services/api.services';
 import RoomCard from '../components/RoomCard';
 import CreateRoomModal from '../components/CreateRoomModal';
 
-const Room = () => {
+// DİKKAT: App.jsx'ten gelen 'profile' verisini buraya ekledik!
+const Room = ({ profile }) => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,23 +16,15 @@ const Room = () => {
       setLoading(true);
       const response = await RoomService.getAllRooms();
       
-      // Backend'den gelen veri yapısı ne olursa olsun güvenli şekilde diziye çevir
       let safeRooms = [];
-      if (Array.isArray(response)) {
-        safeRooms = response;
-      } else if (response && Array.isArray(response.data)) {
-        safeRooms = response.data;
-      } else if (response && response.rooms && Array.isArray(response.rooms)) {
-        safeRooms = response.rooms;
-      }
+      if (Array.isArray(response)) safeRooms = response;
+      else if (response && Array.isArray(response.data)) safeRooms = response.data;
+      else if (response && response.rooms && Array.isArray(response.rooms)) safeRooms = response.rooms;
 
-      // Sadece ID'si olan (yani bozuk olmayan) odaları filtrele ve ekrana bas
       const validRooms = safeRooms.filter(room => room && (room.id || room._id));
       setRooms(validRooms);
-
     } catch (error) {
       console.error("Odalar yüklenirken hata:", error);
-
       setRooms([]); 
     } finally {
       setLoading(false);
@@ -72,20 +65,22 @@ const Room = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-  {rooms.length > 0 ? (
-    rooms.map((room, index) => (
-      <RoomCard 
-        key={room.id || room._id || index} 
-        room={room} 
-        onJoinSuccess={fetchRooms} 
-      />
-    ))
-  ) : (
-    <div className="col-span-full py-20 text-center bg-[#161b22] border border-gray-800 rounded-3xl">
-      <p className="text-gray-500 font-bold italic">Henüz aktif bir oda bulunamadı.</p>
-    </div>
-  )}
-</div>
+            {rooms.length > 0 ? (
+              rooms.map((room, index) => (
+                <RoomCard 
+                  key={room.id || room._id || index} 
+                  room={room} 
+                  currentUser={profile}        // 1. DÜZELTME: Silme butonunun görünmesi için eklendi
+                  onJoinSuccess={fetchRooms} 
+                  onDeleteSuccess={fetchRooms} // 2. DÜZELTME: F5 atmadan anında silinmesi için eklendi!
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center bg-[#161b22] border border-gray-800 rounded-3xl">
+                <p className="text-gray-500 font-bold italic">Henüz aktif bir oda bulunamadı.</p>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

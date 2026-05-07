@@ -1,6 +1,7 @@
 class ProfileMapper {
   static toResponse(user, profileDoc) {
     return {
+      id: user._id ? user._id.toString() : user.id,
       username: user?.username || user?.name,
       email: user?.email,
       title: profileDoc?.title,

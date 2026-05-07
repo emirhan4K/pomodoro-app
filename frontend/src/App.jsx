@@ -127,14 +127,15 @@ function App() {
               )
             }
           />
-          <Route
-            path="/room/:id"
-            element={profile ? <ActiveRoom /> : <Navigate to="/" />}
-          />
-          <Route 
-            path="/rooms" 
-            element={profile ? <Rooms /> : <Navigate to="/" />} 
-          />
+       <Route 
+  path="/room/:id" 
+  element={profile ? <ActiveRoom profile={profile} /> : <Navigate to="/" />} 
+/>
+
+<Route 
+  path="/rooms" 
+  element={profile ? <Rooms profile={profile} /> : <Navigate to="/" />} 
+/>
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
