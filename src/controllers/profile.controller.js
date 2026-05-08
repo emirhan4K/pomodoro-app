@@ -1,7 +1,7 @@
 class ProfileController {
   constructor({ profileService }) {
     this.profileService = profileService;
-  }
+  } 
 
   getProfile = async (req, res, next) => {
     try {
