@@ -116,7 +116,7 @@ class ProfileService {
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
       { avatar: fileUrl },
-      { new: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     const user = await this.userRepository.model.findById(userId).select('-password');
@@ -129,7 +129,7 @@ class ProfileService {
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
       { banner: fileUrl },
-      { new: true }
+      { returnDocument: 'after', upsert: true }
     );
 
     const user = await this.userRepository.model.findById(userId).select('-password');
