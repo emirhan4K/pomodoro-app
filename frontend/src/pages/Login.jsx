@@ -1,136 +1,116 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { AuthService } from "../services/api.services";
-import { useAuth } from "../context/AuthContext";
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { AuthService } from '../services/api.services';
 
-const Login = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const Login = () => {
   const navigate = useNavigate();
-
-  // AuthContext'ten login fonksiyonumuzu çekiyoruz
   const { login } = useAuth();
+  
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+    setError('');
     setIsLoading(true);
-
     try {
-      // api.post yerine oluşturduğumuz AuthService'i kullanıyoruz
-      const response = await AuthService.login({ email, password });
-
-      // Context içindeki login fonksiyonu hem token'ı kaydeder hem de Profil/XP verisini çeker
-      login(response.data.token);
-
-      if (onLoginSuccess) {
-        await onLoginSuccess();
-      }
-      navigate("/dashboard");
+      const response = await AuthService.login(formData);
+      localStorage.setItem('token', response.data.token);
+      window.location.href = '/dashboard'; 
+      
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Giriş başarısız. Bilgilerini kontrol et.",
-      );
+      setError(err.response?.data?.message || 'Giriş yapılamadı. Bilgilerinizi kontrol edin.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden transition-colors duration-500">
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl"></div>
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-3xl"></div>
-
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-10 rounded-[2.5rem] shadow-2xl dark:shadow-indigo-900/20 border border-white dark:border-slate-800 w-full max-w-md relative z-10">
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center text-white font-black text-3xl shadow-lg mx-auto mb-4">
-            P
+    <div className="min-h-screen flex w-full bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 font-sans">
+      
+      {/* SOL PANEL - GÖRSEL (Sadece büyük ekranlarda görünür) */}
+      <div className="hidden lg:flex w-1/2 relative items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-800 to-indigo-600 overflow-hidden">
+        {/* Dekoratif Işıklar */}
+        <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-fuchsia-500/20 rounded-full blur-[100px]"></div>
+        
+        <div className="relative z-10 text-center px-12 flex flex-col items-center">
+          <div className="w-24 h-24 bg-white/10 backdrop-blur-xl rounded-3xl flex items-center justify-center mb-10 border border-white/20 shadow-2xl">
+            <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-tr from-white to-indigo-200">P</span>
           </div>
-          <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
-            Tekrar Hoş Geldin
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            Odaklanmaya hazır mısın?
+          <h1 className="text-5xl font-black text-white mb-6 tracking-tighter drop-shadow-md">Odaklan.</h1>
+          <p className="text-lg text-indigo-100/80 font-medium leading-relaxed max-w-md">
+            Pomodoro tekniği ile zamanını yönet, hedeflerine ulaş. Senin verimliliğin, senin kontrolünde.
           </p>
         </div>
+      </div>
 
-        {error && (
-          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 px-4 py-3 rounded-2xl mb-6 text-sm text-center font-bold animate-shake">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">
-              E-posta
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all outline-none"
-              placeholder="isim@mail.com"
-              required
-            />
+      {/* SAĞ PANEL - FORM */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative">
+        <div className="w-full max-w-md">
+          
+          {/* Mobil İçin Üst Logo (Sadece mobilde görünür) */}
+          <div className="lg:hidden w-16 h-16 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center mb-8 mx-auto shadow-lg">
+            <span className="text-3xl font-black text-white">P</span>
           </div>
 
-          <div>
-            <label className="block text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">
-              Şifre
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all outline-none"
-              placeholder="••••••••"
-              required
-            />
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-3 tracking-tight">Hoş Geldin 👋</h2>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Hesabına giriş yap ve devam et</p>
           </div>
 
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              marginBottom: "15px",
-              marginTop: "-5px",
-            }}
-          >
-            <Link
-              to="/forgot-password"
-              style={{
-                fontSize: "12px",
-                color: "#8B5CF6" /* Temandaki mor tonlarına uygun */,
-                textDecoration: "none",
-                fontWeight: "600",
-              }}
+          {error && (
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400 text-sm font-bold p-4 rounded-2xl mb-6 text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 pl-1">E-Posta Adresi</label>
+              <input
+                type="email"
+                required
+                className="w-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-indigo-500/50 dark:focus:border-indigo-500/50 rounded-2xl py-3.5 px-5 text-sm font-bold text-slate-700 dark:text-white outline-none transition-all shadow-inner placeholder:font-medium placeholder:text-slate-400"
+                placeholder="ornek@mail.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-2 pl-1 pr-1">
+                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Şifre</label>
+                <Link to="/forgot-password" className="text-[10px] font-black text-indigo-500 hover:text-indigo-600 uppercase tracking-widest transition-colors">Şifremi Unuttum</Link>
+              </div>
+              <input
+                type="password"
+                required
+                className="w-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-indigo-500/50 dark:focus:border-indigo-500/50 rounded-2xl py-3.5 px-5 text-sm font-bold text-slate-700 dark:text-white outline-none transition-all shadow-inner placeholder:font-medium placeholder:text-slate-400"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-1 disabled:opacity-50 disabled:hover:translate-y-0"
             >
-              Şifremi mi unuttum?
+              {isLoading ? 'GİRİŞ YAPILIYOR...' : 'GİRİŞ YAP'}
+            </button>
+          </form>
+
+          <p className="text-center mt-10 text-sm font-bold text-slate-500 dark:text-slate-400">
+            Henüz hesabın yok mu?{' '}
+            <Link to="/register" className="text-indigo-500 hover:text-indigo-600 transition-colors">
+              Hemen Kayıt Ol
             </Link>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            {isLoading ? "Giriş Yapılıyor..." : "Giriş Yap"}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400 font-medium">
-          Henüz hesabın yok mu?{" "}
-          <Link
-            to="/register"
-            className="text-indigo-600 dark:text-indigo-400 font-bold hover:underline ml-1"
-          >
-            Kayıt Ol
-          </Link>
-        </p>
+          </p>
+        </div>
       </div>
     </div>
   );

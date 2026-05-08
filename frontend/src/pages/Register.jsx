@@ -1,137 +1,147 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
+import { Link } from 'react-router-dom';
+import { AuthService } from '../services/api.services';
 
 const Register = () => {
-  const [formData, setFormData] = useState({ 
-    username: '', 
-    email: '', 
-    password: '',
-    passwordConfirm: '' 
-  });
-
+  const [formData, setFormData] = useState({ username: '', email: '', password: '', passwordConfirm: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleRegister = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
-    // Frontend tarafında hızlı kontrol
+    
+    // 1. Frontend Kontrolü
     if (formData.password !== formData.passwordConfirm) {
-      setError("Şifreler birbiriyle uyuşmuyor.");
-      return;
+      return setError('Şifreler birbiriyle eşleşmiyor!');
     }
-
+    
+    setError('');
     setIsLoading(true);
-
     try {
-      // Backend'e tüm objeyi gönderiyoruz (username, email, password, passwordConfirm)
-      await api.post('/auth/register', formData);
-      
-      alert("Hesabın başarıyla oluşturuldu!");
-      navigate('/');
+      const response = await AuthService.register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        passwordConfirm: formData.passwordConfirm 
+      });
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        window.location.href = '/dashboard';
+      } else {
+        window.location.href = '/login';
+      }
     } catch (err) {
-      // Joi'den gelen hata mesajlarını burada yakalıyoruz
-      setError(err.response?.data?.message || "Kayıt sırasında bir hata oluştu.");
+      setError(err.response?.data?.message || 'Kayıt olurken bir hata oluştu.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4 font-sans"
-      style={{ 
-        backgroundColor: '#090A0F', 
-        backgroundImage: 'radial-gradient(circle at 50% 50%, #15103A 0%, #090A0F 80%)' 
-      }}
-    >
+    <div className="min-h-screen flex w-full bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 font-sans">
       
-      <div className="bg-[#151928] p-10 rounded-[24px] shadow-[0_10px_30px_rgba(0,0,0,0.5)] w-full max-w-[420px] box-border transition-all">
+      {/* SOL PANEL - GÖRSEL (Eski Havalı Tasarım) */}
+      <div className="hidden lg:flex w-1/2 relative items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-800 to-indigo-600 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-fuchsia-500/20 rounded-full blur-[100px]"></div>
         
-        {/* Logo Bölümü */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-[#8B5CF6] rounded-[12px] flex items-center justify-center text-white font-bold text-2xl mb-4">
-            P
+        <div className="relative z-10 text-center px-12 flex flex-col items-center">
+          <div className="w-24 h-24 bg-white/10 backdrop-blur-xl rounded-3xl flex items-center justify-center mb-10 border border-white/20 shadow-2xl">
+            <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-tr from-white to-indigo-200">🚀</span>
           </div>
-          <h2 className="text-[22px] font-bold text-white mb-2 tracking-tight">Aramıza Katıl</h2>
-          <p className="text-[13px] text-[#828B9E] text-center">Verimliliğini artırmaya başla.</p>
+          <h1 className="text-5xl font-black text-white mb-6 tracking-tighter drop-shadow-md">Aramıza Katıl.</h1>
+          <p className="text-lg text-indigo-100/80 font-medium leading-relaxed max-w-md">
+            Çalışma saatlerini oyuna dönüştür, arkadaşlarınla rekabet et ve verimliliğin zirvesine ulaş.
+          </p>
         </div>
+      </div>
 
-        {/* Hata Mesajı Alanı (Karanlık temaya uyumlu kırmızı) */}
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-[10px] mb-6 text-[13px] text-center font-bold">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleRegister} className="space-y-5">
-          {/* Kullanıcı Adı */}
-          <div>
-            <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">KULLANICI ADI</label>
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
-              className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
-              placeholder="Örn: emirhan"
-              required
-            />
+      {/* SAĞ PANEL - FORM */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 relative">
+        <div className="w-full max-w-md">
+          
+          <div className="lg:hidden w-16 h-16 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center mb-8 mx-auto shadow-lg">
+            <span className="text-3xl font-black text-white">🚀</span>
           </div>
 
-          {/* E-Posta */}
-          <div>
-            <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">E-POSTA</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
-              placeholder="isim@mail.com"
-              required
-            />
+          <div className="mb-10 text-center lg:text-left">
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-3 tracking-tight">Hesap Oluştur ✨</h2>
+            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Pomodoro yolculuğuna başla</p>
           </div>
 
-          {/* Şifre Alanları */}
-          <div className="grid grid-cols-2 gap-4">
+          {error && (
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 dark:text-rose-400 text-sm font-bold p-4 rounded-2xl mb-6 text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">ŞİFRE</label>
+              <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 pl-1">Kullanıcı Adı</label>
               <input
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
-                placeholder="••••••••"
+                type="text"
                 required
+                className="w-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-indigo-500/50 dark:focus:border-indigo-500/50 rounded-2xl py-3.5 px-5 text-sm font-bold text-slate-700 dark:text-white outline-none transition-all shadow-inner placeholder:font-medium placeholder:text-slate-400"
+                placeholder="kullanici_adi"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
+
             <div>
-              <label className="block text-[10px] font-bold text-[#828B9E] uppercase tracking-[1px] mb-2">ŞİFRE TEKRAR</label>
+              <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 pl-1">E-Posta Adresi</label>
               <input
-                type="password"
-                value={formData.passwordConfirm}
-                onChange={(e) => setFormData({...formData, passwordConfirm: e.target.value})}
-                className="w-full px-4 py-[14px] bg-[#22283A] text-white border-none rounded-[10px] text-[14px] outline-none placeholder-[#828B9E] focus:ring-1 focus:ring-[#8B5CF6] transition-all"
-                placeholder="••••••••"
+                type="email"
                 required
+                className="w-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-indigo-500/50 dark:focus:border-indigo-500/50 rounded-2xl py-3.5 px-5 text-sm font-bold text-slate-700 dark:text-white outline-none transition-all shadow-inner placeholder:font-medium placeholder:text-slate-400"
+                placeholder="ornek@mail.com"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-[#8B5CF6] hover:bg-[#7C3AED] text-white font-bold py-[14px] rounded-[10px] transition-colors text-[15px] mt-2 active:scale-[0.98] disabled:opacity-50"
-          >
-            {isLoading ? 'Lütfen Bekle...' : 'Kayıt Ol'}
-          </button>
-        </form>
+            {/* Şifre ve Şifre Tekrar (Yan yana şık görünüm) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 pl-1">Şifre</label>
+                <input
+                  type="password"
+                  required
+                  className="w-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-indigo-500/50 dark:focus:border-indigo-500/50 rounded-2xl py-3.5 px-5 text-sm font-bold text-slate-700 dark:text-white outline-none transition-all shadow-inner placeholder:font-medium placeholder:text-slate-400"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-2 pl-1">Şifre Tekrar</label>
+                <input
+                  type="password"
+                  required
+                  className="w-full bg-slate-100 dark:bg-slate-800/50 border border-transparent focus:border-indigo-500/50 dark:focus:border-indigo-500/50 rounded-2xl py-3.5 px-5 text-sm font-bold text-slate-700 dark:text-white outline-none transition-all shadow-inner placeholder:font-medium placeholder:text-slate-400"
+                  placeholder="••••••••"
+                  value={formData.passwordConfirm}
+                  onChange={(e) => setFormData({ ...formData, passwordConfirm: e.target.value })}
+                />
+              </div>
+            </div>
 
-        <p className="mt-8 text-center text-[12px] text-[#828B9E]">
-          Zaten hesabın var mı? <Link to="/" className="text-[#8B5CF6] font-bold hover:text-[#7C3AED] transition-colors ml-1 text-decoration-none">Giriş Yap</Link>
-        </p>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all hover:-translate-y-1 mt-4 disabled:opacity-50 disabled:hover:translate-y-0"
+            >
+              {isLoading ? 'HESAP OLUŞTURULUYOR...' : 'KAYIT OL'}
+            </button>
+          </form>
+
+          <p className="text-center mt-10 text-sm font-bold text-slate-500 dark:text-slate-400">
+            Zaten bir hesabın var mı?{' '}
+            <Link to="/login" className="text-indigo-500 hover:text-indigo-600 transition-colors">
+              Giriş Yap
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

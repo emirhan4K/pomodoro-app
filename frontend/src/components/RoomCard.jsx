@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { RoomService } from "../services/api.services";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from '../context/AuthContext';
-import DeleteConfirmModal from "./DeleteConfirmModal"; 
-
+import { useAuth } from "../context/AuthContext";
+import DeleteConfirmModal from "./DeleteConfirmModal";
 
 const RoomCard = ({ room, onJoinSuccess, onDeleteSuccess, currentUser }) => {
   const authContext = useAuth() || {};
@@ -13,51 +12,57 @@ const RoomCard = ({ room, onJoinSuccess, onDeleteSuccess, currentUser }) => {
   const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [error, setError] = useState("");
   const [isJoining, setIsJoining] = useState(false);
-  
-  // SİLME İŞLEMLERİ İÇİN YENİ STATE'LER
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false); // Modalı aç/kapat kontrolü
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const navigate = useNavigate();
 
   if (!room || (!room.id && !room._id)) return null;
 
   const members = room.members || [];
-  const isFull = members.length >= (room.capacity || 10);
   const roomId = room.id || room._id;
-
-  const activeUser = contextUser || currentUser; 
+  const activeUser = contextUser || currentUser;
   const currentUserId = activeUser?.id || activeUser?._id;
-  const roomOwnerId = room?.ownerId || room?.owner;
-  
-  const isOwner = Boolean(currentUserId && roomOwnerId && String(currentUserId) === String(roomOwnerId));
-  
+  const isMember = members.some(
+    (m) => String(m._id || m) === String(currentUserId),
+  );
+  const isOwner = Boolean(
+    currentUserId &&
+    room.owner &&
+    String(currentUserId) === String(room.owner._id || room.owner),
+  );
+  const isFull = members.length >= (room.capacity || 10);
 
- const bannerUrl =
-  room.roomBanner === "default-room-banner.png"
-    ? "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop"
-    : room.roomBanner.startsWith("http")
-      ? room.roomBanner 
-      : `https://pomodoro-app-omxg.onrender.com${room.roomBanner}`; 
+  const bannerUrl =
+    room.roomBanner === "default-room-banner.png"
+      ? "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop"
+      : room.roomBanner.startsWith("http")
+        ? room.roomBanner
+        : `https://pomodoro-app-omxg.onrender.com${room.roomBanner}`;
 
-const avatarUrl =
-  room.roomAvatar && room.roomAvatar.startsWith("http")
-    ? room.roomAvatar
-    : room.roomAvatar?.startsWith("/")
-      ? `https://pomodoro-app-omxg.onrender.com${room.roomAvatar}`
-      : room.roomAvatar;
+  const avatarUrl =
+    room.roomAvatar && room.roomAvatar.startsWith("http")
+      ? room.roomAvatar
+      : room.roomAvatar?.startsWith("/")
+        ? `https://pomodoro-app-omxg.onrender.com${room.roomAvatar}`
+        : room.roomAvatar;
+
   const handleJoin = async () => {
+    if (isMember || isOwner) {
+      navigate(`/room/${room.slug}`);
+      return;
+    }
+
     if (room.isPrivate && !showPasswordInput) {
       setShowPasswordInput(true);
       return;
     }
+
     try {
       setIsJoining(true);
       setError("");
-
       await RoomService.joinRoom(roomId, password);
       if (onJoinSuccess) onJoinSuccess();
-
       navigate(`/room/${room.slug}`);
     } catch (err) {
       setError(err.response?.data?.message || "Giriş başarısız!");
@@ -67,7 +72,7 @@ const avatarUrl =
 
   // Çöp kutusuna tıklayınca tarayıcı uyarısı yerine Modalı açar
   const handleDeleteClick = (e) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     setShowDeleteModal(true);
   };
 
@@ -78,7 +83,7 @@ const avatarUrl =
       await RoomService.deleteRoom(roomId);
       setIsDeleting(false);
       setShowDeleteModal(false); // İşlem bitince modalı kapat
-      if (onDeleteSuccess) onDeleteSuccess(); 
+      if (onDeleteSuccess) onDeleteSuccess();
     } catch (err) {
       console.error(err);
       alert("Oda silinemedi!");
@@ -90,15 +95,14 @@ const avatarUrl =
   return (
     <>
       {/* YENİ ŞIK SİLME MODALIMIZ */}
-      <DeleteConfirmModal 
-        isOpen={showDeleteModal} 
-        onClose={() => setShowDeleteModal(false)} 
-        onConfirm={handleConfirmDelete} 
-        isDeleting={isDeleting} 
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
       />
 
       <div className="group relative bg-[#161b22] rounded-2xl overflow-hidden border border-gray-800 hover:border-indigo-500/50 transition-all duration-300 shadow-xl hover:-translate-y-1 flex flex-col h-full">
-        
         <div className="h-24 w-full relative overflow-hidden shrink-0">
           <img
             src={bannerUrl}
@@ -121,7 +125,12 @@ const avatarUrl =
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -133,8 +142,16 @@ const avatarUrl =
                 className="bg-black/60 backdrop-blur-md p-1.5 rounded-lg border border-orange-500/20 text-orange-400 shadow-xl"
                 title="Şifreli Oda"
               >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
             )}
@@ -177,47 +194,58 @@ const avatarUrl =
           </p>
 
           <div className="mt-6">
-            {showPasswordInput && (
-              <div className="mb-4 animate-fadeIn">
-                <input
-                  type="password"
-                  placeholder="Şifre gerekli..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-[#0d1117] border border-gray-700 rounded-xl p-2.5 text-xs text-white focus:border-indigo-500 outline-none transition-all"
-                />
-                {error && (
-                  <p className="text-rose-400 text-[10px] mt-1 ml-1 font-bold">
-                    {error}
-                  </p>
-                )}
-              </div>
-            )}
+            {showPasswordInput && !isMember && (
+              <div className="mb-4 animate-fadeIn relative group/input">
+    {/* Parlama efekti arka planı */}
+    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl blur opacity-20 group-hover/input:opacity-30 transition duration-500"></div>
+    
+    <input
+      type="password"
+      placeholder="Oda şifresi..."
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      className="relative w-full bg-[#0f121a]/80 backdrop-blur-sm border border-slate-700 focus:border-indigo-500/50 rounded-2xl py-3.5 px-6 text-sm font-bold text-white outline-none transition-all shadow-inner placeholder:font-medium placeholder:text-slate-500 placeholder:tracking-tighter focus:ring-2 focus:ring-indigo-500/20"
+    />
+    
+    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover/input:text-indigo-400 transition-colors">ŞİFRE LÜTFEN</span>
+      <svg className="w-3.5 h-3.5 text-slate-600 group-hover/input:text-indigo-500 transition-colors" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+      </svg>
+    </div>
+
+    {error && (
+      <p className="text-rose-400 text-[10px] mt-1.5 ml-2 font-bold uppercase tracking-widest drop-shadow-[0_0_5px_rgba(225,29,72,0.3)]">
+        ❌ {error}
+      </p>
+    )}
+  </div>
+)}
 
             <button
               onClick={handleJoin}
-              disabled={(isFull && !showPasswordInput) || isJoining || isDeleting}
+              disabled={
+                (!isMember && isFull && !showPasswordInput) ||
+                isJoining ||
+                isDeleting
+              }
               className={`w-full py-3 rounded-xl text-[10px] font-black tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 ${
-                (isFull && !showPasswordInput) || isJoining || isDeleting
-                  ? "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700"
-                  : "bg-indigo-600 hover:bg-indigo-500 text-white hover:shadow-indigo-500/20 active:scale-95"
+                (!isMember && isFull && !showPasswordInput) ||
+                isJoining ||
+                isDeleting
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : isMember || isOwner
+                    ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                    : "bg-indigo-600 hover:bg-indigo-500 text-white"
               }`}
             >
               {isJoining
                 ? "KATILINIYOR..."
-                : isFull && !showPasswordInput
-                  ? "ODA DOLU"
-                  : "ODAYA KATIL"}
-              {!isJoining && (
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              )}
+                : isMember || isOwner
+                  ? "ODAYA GİT"
+                  : isFull
+                    ? "ODA DOLU"
+                    : "ODAYA KATIL"}
             </button>
           </div>
         </div>

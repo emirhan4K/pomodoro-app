@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react"; // 1. useRef ekledik
 import { useParams, useNavigate } from "react-router-dom";
 import { RoomService } from "../services/api.services";
 import { usePomodoro } from "../context/PomodoroContext"; 
-import RoomCongratsModal from "../components/RoomCongratsModal"; // Yeni bileşeni bağladık
+import RoomCongratsModal from "../components/RoomCongratsModal";
 
 const ActiveRoom = ({ profile }) => {
   const { id: roomSlug } = useParams();
@@ -11,7 +11,10 @@ const ActiveRoom = ({ profile }) => {
   const [roomData, setRoomData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLeaving, setIsLeaving] = useState(false);
-  const [message, setMessage] = useState("");
+  
+  // 2. Odanın gerçek ID'sini tutmak için bir Ref oluşturuyoruz
+  // Cleanup fonksiyonu state'e güvenemez ama ref'e güvenir.
+  const roomIdRef = useRef(null);
 
   const { 
     timeLeft, isActive, selectedMinutes, 
@@ -19,10 +22,8 @@ const ActiveRoom = ({ profile }) => {
     showCongrats, setShowCongrats 
   } = usePomodoro();
 
-  // --- DAİRE İLERLEME HESABI ---
-  const radius = 190; // Daire yarıçapı
+  const radius = 190;
   const circumference = 2 * Math.PI * radius;
-  // İlerleme yüzdesi
   const totalSeconds = selectedMinutes * 60;
   const progress = totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
   const strokeDashoffset = circumference - progress * circumference;
@@ -31,18 +32,37 @@ const ActiveRoom = ({ profile }) => {
     const fetchRoomDetails = async () => {
       try {
         const response = await RoomService.getRoomBySlug(roomSlug);
-        setRoomData(response?.room || response?.data || response);
-      } catch (error)  { console.error("Oda bulunamadı", error); navigate("/rooms"); } 
-      finally { setIsLoading(false); }
+        const data = response?.room || response?.data || response;
+        setRoomData(data);
+        
+        // 3. ID'yi Ref'e kaydediyoruz
+        roomIdRef.current = data.id || data._id;
+      } catch (error) { 
+        console.error("Oda bulunamadı", error); 
+        navigate("/rooms"); 
+      } finally { 
+        setIsLoading(false); 
+      }
     };
-   if (roomSlug) fetchRoomDetails();
+
+    if (roomSlug) fetchRoomDetails();
+
+    // 4. İŞTE SİHİRLİ TEMİZLİK FONKSİYONU (A'dan Z'ye Çözüm)
+    return () => {
+      // Bu fonksiyon kullanıcı sayfadan ayrıldığı an ÇALIŞIR.
+      if (roomIdRef.current) {
+        // Sessizce backend'e "ben ayrıldım" bilgisini gönderir.
+        // await koymuyoruz çünkü sayfa zaten kapanıyor, arka planda ateşlesin yeter.
+        RoomService.leaveRoom(roomIdRef.current).catch(err => console.log("Otomatik ayrılma hatası", err));
+      }
+    };
   }, [roomSlug, navigate]);
 
   const handleLeaveRoom = async () => {
     if (isLeaving || !roomData) return;
     try {
       setIsLeaving(true);
-      const realRoomId = roomData.id || roomData._id; // Arka plan için gerçek ID lazım
+      const realRoomId = roomData.id || roomData._id;
       await RoomService.leaveRoom(realRoomId);
       navigate("/rooms");
     } catch (error) {
@@ -52,15 +72,16 @@ const ActiveRoom = ({ profile }) => {
 
   const handleDeleteRoom = async () => {
     if (!roomData) return;
-    if (window.confirm("Bu odayı kalıcı olarak silmek istediğine emin misin? Bu işlem geri alınamaz!")) {
+    if (window.confirm("Bu odayı kalıcı olarak silmek istediğine emin misin?")) {
       try {
         setIsLeaving(true);
-        const realRoomId = roomData.id || roomData._id; // Arka plan için gerçek ID lazım
+        const realRoomId = roomData.id || roomData._id;
         await RoomService.deleteRoom(realRoomId);
+        // Silme işleminde Ref'i boşaltıyoruz ki cleanup tekrar silmeye çalışmasın
+        roomIdRef.current = null; 
         navigate("/rooms");
       } catch (error) {
-        console.error("Silme hatası:", error);
-        alert("Oda silinirken bir hata oluştu!");
+        alert("Hata!");
         setIsLeaving(false);
       }
     }
@@ -72,21 +93,14 @@ const ActiveRoom = ({ profile }) => {
     return `${m}:${s}`;
   };
 
-  if (isLoading) return <div className="h-screen flex items-center justify-center bg-[#0b0e14] text-indigo-500 font-black animate-pulse">YÜKLENİYOR...</div>;
+  if (isLoading) return <div className="h-screen flex items-center justify-center bg-[#0b0e14] text-indigo-500 font-black animate-pulse text-2xl">ODAYA GİRİLİYOR...</div>;
   if (!roomData) return null;
-
-  const isOwner = profile && (profile.id === roomData.owner || profile._id === roomData.owner);
 
   return (
     <div className="h-screen flex flex-col bg-[#0b0e14] text-white overflow-hidden font-sans">
-      
-      {/* TEBRİK KARTI (Ayrı Dosyadan Gelen) */}
       <RoomCongratsModal 
         isOpen={showCongrats} 
-        onClose={() => {
-          setShowCongrats(false); 
-          handleReset(); 
-        }} 
+        onClose={() => { setShowCongrats(false); handleReset(); }} 
         minutes={selectedMinutes}
       />
 
@@ -94,95 +108,105 @@ const ActiveRoom = ({ profile }) => {
       <header className="h-20 shrink-0 flex items-center px-6 border-b border-slate-800/60 bg-[#0f121a] z-10">
         <div className="flex flex-1 justify-between items-center">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate("/rooms")} className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors">
+            <button onClick={handleLeaveRoom} className="p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors">
               <svg className="w-5 h-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
             </button>
             <div>
-              <h1 className="text-xl font-bold flex items-center gap-2">{roomData.roomName}</h1>
-              <p className="text-xs text-slate-400">Su an <span className="text-emerald-400 font-bold">{roomData.members?.length || 0} kişi</span> aktif.</p>
+              <h1 className="text-xl font-bold flex items-center gap-2 uppercase tracking-tighter italic">{roomData.roomName}</h1>
+              <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
+                <span className="text-emerald-400">{roomData.members?.length || 0} ODA SAKİNİ</span> AKTİF
+              </p>
             </div>
           </div>
-          <button onClick={() => navigate("/rooms")} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl text-sm font-bold">Odadan Ayrıl</button>
+          
+          <div className="flex gap-3">
+             {/* Eğer sahibiysen SİLME butonu da burada şık durur */}
+             {profile && (profile.id === (roomData.owner?._id || roomData.owner) || profile._id === (roomData.owner?._id || roomData.owner)) && (
+               <button onClick={handleDeleteRoom} className="px-5 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 rounded-xl text-xs font-black transition-all uppercase">Odayı Kapat</button>
+             )}
+             <button onClick={handleLeaveRoom} className="px-5 py-2.5 bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 rounded-xl text-xs font-black transition-all border border-slate-700 uppercase tracking-widest">Odadan Ayrıl</button>
+          </div>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* SOL PANEL (Chat/Üyeler) */}
-        <div className="w-80 border-r border-slate-800/60 bg-[#0f121a] flex flex-col shrink-0">
-            <div className="p-5 border-b border-slate-800/60">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">ODADAKİLER</h3>
-                <div className="space-y-4">
+        {/* SOL PANEL (Üyeler) */}
+        <div className="w-72 border-r border-slate-800/60 bg-[#0f121a] flex flex-col shrink-0">
+            <div className="p-6 border-b border-slate-800/60 bg-indigo-600/5">
+                <h3 className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-6">ŞU AN ODADAKİLER</h3>
+                <div className="space-y-5">
                     {roomData.members?.map((m, i) => (
-                        <div key={i} className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-black">
+                        <div key={i} className="flex items-center gap-3 group">
+                            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-black group-hover:border-indigo-500 transition-colors">
                                 {(m.username || "U").charAt(0).toUpperCase()}
                             </div>
-                            <span className="text-sm font-bold text-slate-300">{m.username || "Kullanıcı"}</span>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-black text-slate-200 uppercase tracking-tighter">@{m.username || "Kullanıcı"}</span>
+                                <span className="text-[8px] text-emerald-500 font-black tracking-widest">ODAKLANIYOR</span>
+                            </div>
                         </div>
                     ))}
                 </div>
             </div>
-            <div className="flex-1 bg-[#0a0d13] p-4 flex flex-col justify-end">
-                <p className="text-xs text-slate-500 italic mb-4">Sohbet yakında aktif edilecek...</p>
-                <input type="text" placeholder="Mesaj yaz..." disabled className="w-full bg-[#171b26] border border-slate-800 rounded-xl px-4 py-3 text-sm opacity-50 cursor-not-allowed" />
+            <div className="flex-1 bg-[#0a0d13]/50 p-4 flex flex-col justify-end">
+                <div className="bg-slate-800/20 rounded-2xl p-4 border border-slate-800/40">
+                  <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest text-center">Mesajlaşma Çok Yakında!</p>
+                </div>
             </div>
         </div>
 
-        {/* MERKEZ (DAİRE EFEKTLİ POMODORO) */}
+        {/* MERKEZ (SAYAÇ) */}
         <div className="flex-1 flex items-center justify-center relative bg-[#0b0e14]">
-          <div className={`absolute w-[600px] h-[600px] rounded-full blur-[120px] transition-colors duration-1000 ${isActive ? 'bg-orange-600/10' : 'bg-indigo-600/5'}`}></div>
+          <div className={`absolute w-[500px] h-[500px] rounded-full blur-[120px] transition-all duration-1000 ${isActive ? 'bg-orange-600/10' : 'bg-indigo-600/10'}`}></div>
           
           <div className="z-10 flex flex-col items-center">
             {/* Süre Seçiciler */}
-            <div className="flex gap-2 mb-12">
+            <div className="flex gap-3 mb-10">
               {[1, 25, 45, 60].map((min) => (
                 <button
                   key={min}
                   onClick={() => handleDurationSelect(min)}
                   disabled={isActive}
-                  className={`px-5 py-2 rounded-xl text-xs font-black transition-all ${selectedMinutes === min ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-800/40 text-slate-500 hover:text-white disabled:opacity-30'}`}
+                  className={`px-6 py-2.5 rounded-2xl text-[10px] font-black transition-all ${selectedMinutes === min ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/40 translate-y-[-2px]' : 'bg-slate-800/40 text-slate-500 hover:text-white border border-transparent hover:border-slate-700'}`}
                 >
-                  {min} DK
+                  {min} DAKİKA
                 </button>
               ))}
             </div>
 
             {/* DAİRE VE SAYAÇ */}
-            <div className="relative w-[450px] h-[450px] flex items-center justify-center">
-              {/* SVG Daire İlerleme Çizgisi */}
+            <div className="relative w-[420px] h-[420px] flex items-center justify-center">
               <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 450 450">
-                {/* Arka Plan Dairesi (Muted) */}
-                <circle cx="225" cy="225" r={radius} fill="transparent" stroke="currentColor" strokeWidth="12" className="text-slate-800/30" />
-                {/* Hareketli İlerleme Dairesi */}
+                <circle cx="225" cy="225" r={radius} fill="transparent" stroke="currentColor" strokeWidth="8" className="text-slate-800/20" />
                 <circle
                   cx="225" cy="225" r={radius} fill="transparent" stroke="currentColor" strokeWidth="12"
                   strokeDasharray={circumference}
                   style={{ strokeDashoffset, transition: 'stroke-dashoffset 1s linear' }}
                   strokeLinecap="round"
-                  className={`${isActive ? 'text-orange-500' : 'text-indigo-600'}`}
+                  className={`${isActive ? 'text-orange-500' : 'text-indigo-600'} drop-shadow-[0_0_8px_rgba(79,70,229,0.3)]`}
                 />
               </svg>
 
-              {/* İç Panel */}
-              <div className="w-[360px] h-[360px] rounded-full bg-[#11151f] flex flex-col items-center justify-center shadow-2xl border border-slate-800/50">
-                <span className={`text-[100px] font-black tracking-tighter transition-colors duration-500 ${isActive ? 'text-orange-400' : 'text-white'}`}>
+              <div className="w-[340px] h-[340px] rounded-full bg-[#0f121a] flex flex-col items-center justify-center shadow-[inset_0_0_40px_rgba(0,0,0,0.5)] border border-slate-800/50">
+                <span className={`text-[90px] font-black tracking-tighter transition-all duration-500 ${isActive ? 'text-orange-400 scale-110' : 'text-white'}`}>
                   {formatTime(timeLeft)}
                 </span>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mt-2">
-                  {isActive ? "ODAKLANILIYOR" : "HAZIR MISIN?"}
+                <div className="h-px w-12 bg-slate-800 my-2"></div>
+                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.4em]">
+                  {isActive ? "SEANS BAŞLADI" : "MOLA BİTTİ"}
                 </p>
               </div>
             </div>
 
             {/* Kontroller */}
-            <div className="flex gap-4 mt-16">
+            <div className="flex gap-4 mt-12">
               <button 
                 onClick={toggleTimer}
-                className={`w-48 py-5 rounded-2xl font-black tracking-[0.2em] transition-all hover:-translate-y-1 ${isActive ? 'bg-orange-500 shadow-orange-500/20' : 'bg-indigo-600 shadow-indigo-600/20'} shadow-lg`}
+                className={`w-52 py-5 rounded-[2rem] font-black text-xs tracking-[0.3em] transition-all hover:-translate-y-1 active:scale-95 ${isActive ? 'bg-orange-500 shadow-xl shadow-orange-500/20' : 'bg-indigo-600 shadow-xl shadow-indigo-600/20'} text-white`}
               >
-                {isActive ? "DURAKLAT" : "BAŞLAT"}
+                {isActive ? "DURAKLAT" : "ODAKLAN"}
               </button>
-              <button onClick={handleReset} className="p-5 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl transition-all">
+              <button onClick={handleReset} className="w-16 h-16 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-white rounded-full transition-all border border-slate-700 shadow-lg">
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               </button>
             </div>
