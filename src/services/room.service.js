@@ -113,8 +113,8 @@ class RoomService {
 
     return RoomMapper.toDTO(room);
   }
-  async updateBanner(roomId, userId, bannerFilename) {
-    if (!bannerFilename)
+  async updateBanner(roomId, userId, fileUrl) {
+    if (!fileUrl)
       throw new BadRequestException(
         "Lütfen geçerli bir arka plan dosyası seçin!",
       );
@@ -123,43 +123,27 @@ class RoomService {
       _id: roomId,
       owner: userId,
     });
+    
     if (!room)
       throw new BadRequestException(
         "Oda bulunamadı veya bu işlemi yapmaya yetkiniz yok!",
       );
-
-    if (room.roomBanner && room.roomBanner !== "default-room-banner.png") {
-      const oldImagePath = path.join(
-        __dirname,
-        "../public/uploads/banners",
-        room.roomBanner.replace("/uploads/banners/", ""),
-      );
-      if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-    }
-
-    room.roomBanner = `/uploads/banners/${bannerFilename}`;
+    room.roomBanner = fileUrl;
     await room.save();
 
     return RoomMapper.toDTO(room);
   }
+
   async deleteRoom(roomId, userId) {
     const room = await this.roomRepository.model.findById(roomId);
     if (!room) throw new BadRequestException("Oda bulunamadı!");
 
     if (room.owner.toString() !== userId) {
       throw new BadRequestException("Bu odayı silme yetkiniz yok!");
-    }
-    if (room.roomAvatar && !room.roomAvatar.includes('default-')) {
-      const avatarPath = path.join(__dirname, '../public', room.roomAvatar);
-      if (fs.existsSync(avatarPath)) fs.unlinkSync(avatarPath);
-    }
-    if (room.roomBanner && !room.roomBanner.includes('default-')) {
-      const bannerPath = path.join(__dirname, '../public', room.roomBanner);
-      if (fs.existsSync(bannerPath)) fs.unlinkSync(bannerPath);
-    }
+    }    
     await this.roomRepository.deleteRoomById(roomId);
     
-    return { success: true, message: "Oda ve bağlı resimler tamamen silindi." };
+    return { success: true, message: "Oda başarıyla silindi." };
   }
 }
 

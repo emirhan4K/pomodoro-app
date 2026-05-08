@@ -108,40 +108,27 @@ class ProfileService {
     if (!deletedUser) throw new BadRequestException('Kullanıcı bulunamadı veya zaten silinmiş.');
     return { message: 'Hesabınız başarıyla silindi.' };
   }
-  async updateAvatar(userId, avatarFilename) {
-    if (!avatarFilename) {
+  async updateAvatar(userId, fileUrl) {
+    if (!fileUrl) {
       throw new BadRequestException("Lütfen geçerli bir resim dosyası seçin!");
-    }
-    const oldProfile = await this.profileRepository.model.findOne({ user: userId });
-    if (oldProfile && oldProfile.avatar && oldProfile.avatar !== 'default-avatar.png') {
-      const oldImagePath = path.join(__dirname, '../public/uploads/avatars', oldProfile.avatar); 
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath); 
-      }
     }
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
-      { avatar: avatarFilename },
+      { avatar: fileUrl },
       { new: true }
     );
 
     const user = await this.userRepository.model.findById(userId).select('-password');
     return ProfileMapper.toResponse(user, updatedProfile);
   }
-  async updateBanner(userId, bannerFilename) {
-    if (!bannerFilename) {
+
+  async updateBanner(userId, fileUrl) {
+    if (!fileUrl) {
       throw new BadRequestException("Lütfen geçerli bir arka plan dosyası seçin!");
-    }
-    const oldProfile = await this.profileRepository.model.findOne({ user: userId });
-    if (oldProfile && oldProfile.banner && oldProfile.banner !== 'default-banner.png') {
-      const oldImagePath = path.join(__dirname, '../public/uploads/banners', oldProfile.banner); 
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath); 
-      }
     }
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
-      { banner: bannerFilename },
+      { banner: fileUrl },
       { new: true }
     );
 
