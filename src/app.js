@@ -7,11 +7,14 @@ const swaggerDocument = require("./swagger-output.json");
 const app = express();
 app.use(cors({
   origin: [
-    'http://localhost:5173', // Yerelde geliştirme yaparken bozulmaması için
-    'https://pomodoro-app-nu-blush.vercel.app', //YENİ CANLI LİNK!
+    'http://localhost:5173',
     'https://odaklan-app.vercel.app',
+    'https://pomodoro-app-nu-blush.vercel.app' 
   ],
-  credentials: true 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], 
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'], 
+  credentials: true,
+  optionsSuccessStatus: 200 
 }));
 app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
