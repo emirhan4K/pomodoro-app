@@ -121,7 +121,6 @@ class ProfileService {
     const user = await this.userRepository.model.findById(userId).select('-password');
     return ProfileMapper.toResponse(user, updatedProfile);
   }
-
   async updateBanner(userId, fileUrl) {
     if (!fileUrl) {
       throw new BadRequestException("Lütfen geçerli bir arka plan dosyası seçin!");
