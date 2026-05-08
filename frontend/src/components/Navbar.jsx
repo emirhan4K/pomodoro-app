@@ -4,7 +4,10 @@ import { useAuth } from '../context/AuthContext';
 
 const Navbar = ({ notificationCount = 0 }) => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth(); 
+  
+  // İŞTE BÜTÜN SORUNU ÇÖZEN KELİME: 'user' DEĞİL 'profile' OLACAKTI!
+  const { profile, logout } = useAuth(); 
+  
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
 
@@ -19,9 +22,9 @@ const Navbar = ({ notificationCount = 0 }) => {
     navigate('/'); 
   };
 
-  // Açılır menü için XP Hesaplamaları
-  const userLevel = user?.level || 1;
-  const currentXp = user?.xp || 0;
+  // Açılır menü için XP Hesaplamaları (Artık 'profile' üzerinden çekiyoruz)
+  const userLevel = profile?.level || 1;
+  const currentXp = profile?.xp || 0;
   const requiredXp = Math.floor(userLevel * 100 * 1.5);
   const progressPercentage = Math.min((currentXp / requiredXp) * 100, 100);
 
@@ -50,13 +53,14 @@ const Navbar = ({ notificationCount = 0 }) => {
           >
             {/* Küçük Navbar Avatarı */}
             <div className="w-9 h-9 bg-[#0f172a] rounded-xl flex items-center justify-center text-white font-black shadow-inner border border-slate-600 overflow-hidden">
-              {user?.avatar && user.avatar !== 'default-avatar.png' ? (
-               <img 
-    src={user.avatar?.startsWith('http') ? user.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${user.avatar}`} 
-    className="w-full h-full object-cover" 
-  />
+              {profile?.avatar && profile.avatar !== 'default-avatar.png' ? (
+                <img 
+                  src={profile.avatar?.startsWith('http') ? profile.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${profile.avatar}`} 
+                  className="w-full h-full object-cover" 
+                  alt="Avatar"
+                />
               ) : (
-                user?.username?.charAt(0).toUpperCase() || 'E'
+                profile?.username?.charAt(0).toUpperCase() || 'E'
               )}
             </div>
             {notificationCount > 0 && (
@@ -73,32 +77,34 @@ const Navbar = ({ notificationCount = 0 }) => {
               {/* --- YENİ NESİL HEADER: BANNER VE AVATAR --- */}
               <div className="relative h-32 w-full overflow-hidden">
                 {/* Arka Plan Banner */}
-                {user?.banner && user.banner !== 'default-banner.png' ? (
+                {profile?.banner && profile.banner !== 'default-banner.png' ? (
                   <img 
-    src={user.banner?.startsWith('http') ? user.banner : `https://pomodoro-app-omxg.onrender.com/public/uploads/banners/${user.banner}`} 
-    className="w-full h-full object-cover" 
-  />
+                    src={profile.banner?.startsWith('http') ? profile.banner : `https://pomodoro-app-omxg.onrender.com/public/uploads/banners/${profile.banner}`} 
+                    className="w-full h-full object-cover" 
+                    alt="Banner"
+                  />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-purple-700 opacity-40" />
                 )}
                 
-                {/* Banner üzerine hafif karartma (Bilgilerin okunması için) */}
+                {/* Banner üzerine hafif karartma */}
                 <div className="absolute inset-0 bg-black/30" />
 
                 {/* Header İçindeki Avatar ve Bilgiler */}
                 <div className="absolute bottom-4 left-5 flex items-center gap-3 z-10">
                   <div className="w-14 h-14 rounded-2xl border-4 border-white/10 dark:border-[#0f172a] bg-[#0f172a] overflow-hidden flex items-center justify-center shadow-lg">
-                    {user?.avatar && user.avatar !== 'default-avatar.png' ? (
-                     <img 
-    src={user.avatar?.startsWith('http') ? user.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${user.avatar}`} 
-    className="w-full h-full object-cover" 
-  />
+                    {profile?.avatar && profile.avatar !== 'default-avatar.png' ? (
+                      <img 
+                        src={profile.avatar?.startsWith('http') ? profile.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${profile.avatar}`} 
+                        className="w-full h-full object-cover" 
+                        alt="Avatar"
+                      />
                     ) : (
-                      <span className="text-xl font-black text-white">{user?.username?.charAt(0).toUpperCase()}</span>
+                      <span className="text-xl font-black text-white">{profile?.username?.charAt(0).toUpperCase()}</span>
                     )}
                   </div>
                   <div className="pb-1">
-                    <p className="text-sm font-black text-white uppercase tracking-tight truncate w-32 drop-shadow-md">@{user?.username || 'KULLANICI'}</p>
+                    <p className="text-sm font-black text-white uppercase tracking-tight truncate w-32 drop-shadow-md">@{profile?.username || 'KULLANICI'}</p>
                     <span className="bg-indigo-500 text-[10px] px-2 py-0.5 rounded-lg font-black text-white uppercase italic shadow-sm">
                       SEVİYE {userLevel}
                     </span>
@@ -106,7 +112,7 @@ const Navbar = ({ notificationCount = 0 }) => {
                 </div>
               </div>
 
-              {/* XP Barı Kısmı (Banner'ın hemen altı) */}
+              {/* XP Barı Kısmı */}
               <div className="p-5 pt-4 border-b border-slate-100 dark:border-slate-800/80">
                 <div className="w-full">
                   <div className="flex justify-between items-center mb-1.5">
