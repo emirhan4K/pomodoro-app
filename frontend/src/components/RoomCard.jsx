@@ -33,18 +33,19 @@ const RoomCard = ({ room, onJoinSuccess, onDeleteSuccess, currentUser }) => {
   const isOwner = Boolean(currentUserId && roomOwnerId && String(currentUserId) === String(roomOwnerId));
   
 
-  const bannerUrl =
-    room.roomBanner === "default-room-banner.png"
-      ? "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop"
-      : room.roomBanner.startsWith("/")
-        ? `http://localhost:3000${room.roomBanner}`
-        : room.roomBanner;
+ const bannerUrl =
+  room.roomBanner === "default-room-banner.png"
+    ? "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=500&auto=format&fit=crop"
+    : room.roomBanner.startsWith("http")
+      ? room.roomBanner 
+      : `https://pomodoro-app-omxg.onrender.com${room.roomBanner}`; 
 
-  const avatarUrl =
-    room.roomAvatar && room.roomAvatar.startsWith("/")
-      ? `http://localhost:3000${room.roomAvatar}`
+const avatarUrl =
+  room.roomAvatar && room.roomAvatar.startsWith("http")
+    ? room.roomAvatar
+    : room.roomAvatar?.startsWith("/")
+      ? `https://pomodoro-app-omxg.onrender.com${room.roomAvatar}`
       : room.roomAvatar;
-
   const handleJoin = async () => {
     if (room.isPrivate && !showPasswordInput) {
       setShowPasswordInput(true);
