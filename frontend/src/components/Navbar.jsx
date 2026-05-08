@@ -51,7 +51,7 @@ const Navbar = ({ notificationCount = 0 }) => {
             {/* Küçük Navbar Avatarı */}
             <div className="w-9 h-9 bg-[#0f172a] rounded-xl flex items-center justify-center text-white font-black shadow-inner border border-slate-600 overflow-hidden">
               {user?.avatar && user.avatar !== 'default-avatar.png' ? (
-                <img 
+               <img 
     src={user.avatar?.startsWith('http') ? user.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${user.avatar}`} 
     className="w-full h-full object-cover" 
   />
@@ -89,7 +89,7 @@ const Navbar = ({ notificationCount = 0 }) => {
                 <div className="absolute bottom-4 left-5 flex items-center gap-3 z-10">
                   <div className="w-14 h-14 rounded-2xl border-4 border-white/10 dark:border-[#0f172a] bg-[#0f172a] overflow-hidden flex items-center justify-center shadow-lg">
                     {user?.avatar && user.avatar !== 'default-avatar.png' ? (
-                      <img 
+                     <img 
     src={user.avatar?.startsWith('http') ? user.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${user.avatar}`} 
     className="w-full h-full object-cover" 
   />
