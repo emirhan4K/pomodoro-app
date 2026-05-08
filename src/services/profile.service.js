@@ -14,18 +14,19 @@ class ProfileService {
   async getUserProfile(userId) {
     const user = await this.userRepository.findById(userId);
     let profile = await this.profileRepository.findByUserId(userId);
-
     if (!profile) {
-      profile = {
+      profile = await this.profileRepository.model.create({
+        user: userId,
         xp: 0,
         level: 1,
         totalPomodoros: 0,
         totalWorkTime: 0,
         currentStreak: 0,
         bestStreak: 0,
-        lastSessionDate: null,
-      };
+        lastSessionDate: null
+      });
     }
+
     return ProfileMapper.toResponse(user, profile);
   }
   async handleCompletedPomodoro(userId, duration) {
