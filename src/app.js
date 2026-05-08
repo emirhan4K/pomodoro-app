@@ -8,7 +8,8 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173', // Yerelde geliştirme yaparken bozulmaması için
-    'https://pomodoro-app-nu-blush.vercel.app' //YENİ CANLI LİNK!
+    'https://pomodoro-app-nu-blush.vercel.app', //YENİ CANLI LİNK!
+    'https://odaklan-app.vercel.app',
   ],
   credentials: true 
 }));
