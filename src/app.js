@@ -5,7 +5,13 @@ const errorMiddleware = require("./middlewares/error.middleware");
 const swaggerUi = require("swagger-ui-express");
 const swaggerDocument = require("./swagger-output.json");
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173', // Yerelde geliştirme yaparken bozulmaması için
+    'https://pomodoro-app-nu-blush.vercel.app' //YENİ CANLI LİNK!
+  ],
+  credentials: true 
+}));
 app.use(express.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
