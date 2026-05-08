@@ -11,7 +11,6 @@ export function useAuth() {
   return context;
 }
 
-// 3. PROVIDER: Bunu da mutlaka EXPORT etmelisin!
 export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);

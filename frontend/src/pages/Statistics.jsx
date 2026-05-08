@@ -4,7 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Statistics = () => {
-  const { user } = useAuth();
+ const { profile } = useAuth();
   const [timeRange, setTimeRange] = useState('daily');
   const [dateOffset, setDateOffset] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ const Statistics = () => {
     recentSessions: []
   });
 
-  const currentStreak = user?.currentStreak || 0;
+  const currentStreak = profile?.currentStreak || 0;
 
   // VERİ ÇEKME İŞLEMİ (dateOffset veya timeRange değiştiğinde tetiklenir)
   useEffect(() => {

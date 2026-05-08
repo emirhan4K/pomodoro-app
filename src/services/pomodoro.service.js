@@ -98,8 +98,7 @@ class PomodoroService {
     const pomodoros = await this.pomodoroRepository.getUserHistory(userId);
     return pomodoros.map((pomodoro) => PomodoroMapper.toResponse(pomodoro));
   }
-  async getDailyDashboardStats(userId,offset = 0) {
-    // 1. KULLANICI KONTROLÜ: userId bir obje mi yoksa düz string mi bak, içinden gerçek ID'yi çıkar
+  async getDailyDashboardStats(userId, offset = 0) {
     const cleanId =
       userId && typeof userId === "object"
         ? userId.id || userId._id || userId.user
@@ -112,7 +111,7 @@ class PomodoroService {
     const startOfDay = new Date(targetDate);
     startOfDay.setHours(0, 0, 0, 0);
 
-    const endOfDay = new Date();
+    const endOfDay = new Date(targetDate);
     endOfDay.setHours(23, 59, 59, 999);
 
     const todaySessions = await this.pomodoroRepository.model.find({
@@ -226,23 +225,23 @@ class PomodoroService {
       recentSessions,
     };
   }
-  async getWeeklyDashboardStats(userId,offset = 0) {
+  async getWeeklyDashboardStats(userId, offset = 0) {
     const cleanId =
       userId && typeof userId === "object"
         ? userId.id || userId._id || userId.user
         : userId;
 
-        const offsetNum = parseInt(offset, 10) || 0;
+    const offsetNum = parseInt(offset, 10) || 0;
     const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + (offsetNum * 7));
+    targetDate.setDate(targetDate.getDate() + offsetNum * 7);
 
     const todayNight = new Date(targetDate);
     todayNight.setHours(23, 59, 59, 999);
 
     const today = new Date();
 
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - 7);
+    const startOfWeek = new Date(targetDate);
+    startOfWeek.setDate(targetDate.getDate() - 6);
     startOfWeek.setHours(0, 0, 0, 0);
 
     const weekSession = await this.pomodoroRepository.model.find({
@@ -300,7 +299,6 @@ class PomodoroService {
       time: day,
       duration: daysMap[day],
     }));
-    // Bu Haftaki Oturumlar Listesi (En son yapılan 5 oturumu alalım)
     const recentSessions = weekSession
       .sort((a, b) => b.createdAt - a.createdAt) // Yeniden eskiye sırala
       .slice(0, 5) // Ekranda çok kalabalık yapmasın, son 5 yeter
@@ -338,16 +336,24 @@ class PomodoroService {
 
     const offsetNum = parseInt(offset, 10) || 0;
     const targetDate = new Date();
-    targetDate.setDate(1); 
+    targetDate.setDate(1);
     targetDate.setMonth(targetDate.getMonth() + offsetNum);
-    
-    const startOfMonthly = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+
+    const startOfMonthly = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      1,
+    );
     startOfMonthly.setHours(0, 0, 0, 0);
     let todayNight = new Date();
     if (offsetNum === 0) {
       todayNight.setHours(23, 59, 59, 999);
     } else {
-      todayNight = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+      todayNight = new Date(
+        targetDate.getFullYear(),
+        targetDate.getMonth() + 1,
+        0,
+      );
       todayNight.setHours(23, 59, 59, 999);
     }
     const monthlySession = await this.pomodoroRepository.model.find({
