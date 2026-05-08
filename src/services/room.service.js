@@ -87,28 +87,21 @@ class RoomService {
     await this.roomRepository.removeMember(roomId, userId);
     return { message: "Odadan başarıyla ayrıldınız." };
   }
-  async updateAvatar(roomId, userId, avatarFilename) {
-    if (!avatarFilename)
+  async updateAvatar(roomId, userId, fileUrl) {
+    if (!fileUrl)
       throw new BadRequestException("Lütfen geçerli bir resim dosyası seçin!");
 
     const room = await this.roomRepository.model.findOne({
       _id: roomId,
       owner: userId,
     });
+    
     if (!room)
       throw new BadRequestException(
         "Oda bulunamadı veya bu işlemi yapmaya yetkiniz yok!",
       );
-    if (room.roomAvatar && room.roomAvatar !== "default-room.png") {
-      const oldImagePath = path.join(
-        __dirname,
-        "../public/uploads/avatars",
-        room.roomAvatar.replace("/uploads/avatars/", ""),
-      );
-      if (fs.existsSync(oldImagePath)) fs.unlinkSync(oldImagePath);
-    }
-
-    room.roomAvatar = `/uploads/avatars/${avatarFilename}`;
+    room.roomAvatar = fileUrl;
+    
     await room.save();
 
     return RoomMapper.toDTO(room);
@@ -133,7 +126,6 @@ class RoomService {
 
     return RoomMapper.toDTO(room);
   }
-
   async deleteRoom(roomId, userId) {
     const room = await this.roomRepository.model.findById(roomId);
     if (!room) throw new BadRequestException("Oda bulunamadı!");
