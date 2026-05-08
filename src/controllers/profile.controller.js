@@ -63,8 +63,8 @@ class ProfileController {
   uploadAvatar = async (req, res, next) => {
     try {
       const userId = req.user.id;
-      const filename = req.file?.filename; 
-      const result = await this.profileService.updateAvatar(userId, filename);
+      const fileUrl = req.file?.path;
+      const result = await this.profileService.updateAvatar(userId, fileUrl);
       res.status(200).json(result);
     } catch (error) {
       next(error);
@@ -73,8 +73,8 @@ class ProfileController {
   uploadBanner = async (req,res,next) => {
     try {
       const userId = req.user.id;
-      const filename = req.file?.filename; 
-      const result = await this.profileService.updateBanner(userId, filename);
+      const fileUrl = req.file?.path;
+      const result = await this.profileService.updateBanner(userId, fileUrl);
       res.status(200).json(result);
     } catch (error) {
       next(error);

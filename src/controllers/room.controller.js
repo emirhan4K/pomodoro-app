@@ -8,10 +8,10 @@ class RoomController {
       const roomData = req.body || {};
       if (req.files) {
         if (req.files["avatar"]) {
-          roomData.roomAvatar = `/public/uploads/rooms/avatars/${req.files["avatar"][0].filename}`;
+          roomData.roomAvatar = req.files["avatar"][0].path;
         }
         if (req.files["banner"]) {
-          roomData.roomBanner = `/public/uploads/rooms/banners/${req.files["banner"][0].filename}`;
+          roomData.roomBanner = req.files["banner"][0].path;
         }
       }
       const result = await this.roomService.createRoom(userId, roomData);
@@ -69,11 +69,11 @@ class RoomController {
     try {
       const userId = req.user.id;
       const roomId = req.params.roomId;
-      const filename = req.file?.filename;
+      const fileUrl = req.file?.path;
       const result = await this.roomService.updateAvatar(
         roomId,
         userId,
-        filename,
+        fileUrl,
       );
       res.status(200).json(result);
     } catch (error) {
@@ -84,12 +84,12 @@ class RoomController {
     try {
       const userId = req.user.id;
       const roomId = req.params.roomId;
-      const filename = req.file?.filename;
+      const fileUrl = req.file?.path;
 
       const result = await this.roomService.updateBanner(
         roomId,
         userId,
-        filename,
+        fileUrl,
       );
       res.status(200).json(result);
     } catch (error) {
