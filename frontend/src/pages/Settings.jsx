@@ -290,7 +290,11 @@ const Settings = ({ refresh }) => {
                       {bannerPreview ? (
                         <img src={bannerPreview} className="w-full h-full object-cover" alt="Banner Önizleme" />
                       ) : formData.banner && formData.banner !== 'default-banner.png' ? (
-                        <img src={`http://localhost:3000/public/uploads/banners/${formData.banner}`} className="w-full h-full object-cover" alt="Banner" />
+                        <img 
+    src={formData.banner?.startsWith('http') ? formData.banner : `https://pomodoro-app-omxg.onrender.com/public/uploads/banners/${formData.banner}`} 
+    className="w-full h-full object-cover" 
+    alt="Banner" 
+  />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-r from-slate-800 to-slate-900 flex items-center justify-center text-slate-600 italic text-sm">Banner seçilmedi</div>
                       )}
