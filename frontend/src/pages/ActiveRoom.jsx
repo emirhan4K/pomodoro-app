@@ -17,7 +17,6 @@ const ActiveRoom = ({ profile }) => {
   
   const roomIdRef = useRef(null);
 
-  // CONTEXT'TEN YENİ ARKA KAPI FONKSİYONLARINI DA ÇEKİYORUZ
   const { 
     timeLeft, isActive, selectedMinutes, 
     toggleTimer, handleReset, handleDurationSelect,
@@ -25,21 +24,22 @@ const ActiveRoom = ({ profile }) => {
     setTimeLeft, setIsActive, setSelectedMinutes 
   } = usePomodoro();
 
+  // --- REFS: React'ı saniyede bir tetiklememek için verileri referansa hapsediyoruz ---
   const profileRef = useRef(profile);
-  useEffect(() => {
-    profileRef.current = profile;
-  }, [profile]);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+
+  const isOwner = profile && roomData && (profile.id === (roomData.owner?._id || roomData.owner) || profile._id === (roomData.owner?._id || roomData.owner));
+  const isOwnerRef = useRef(isOwner);
+  useEffect(() => { isOwnerRef.current = isOwner; }, [isOwner]);
+
+  const timerRef = useRef({ timeLeft, isActive, selectedMinutes });
+  useEffect(() => { timerRef.current = { timeLeft, isActive, selectedMinutes }; }, [timeLeft, isActive, selectedMinutes]);
 
   const radius = 190;
   const circumference = 2 * Math.PI * radius;
   const totalSeconds = selectedMinutes * 60;
   const progress = totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
   const strokeDashoffset = circumference - progress * circumference;
-
-  // KURUCU (OWNER) KONTROLÜ
-  const isOwner = profile && roomData && 
-    (profile.id === (roomData.owner?._id || roomData.owner) || 
-     profile._id === (roomData.owner?._id || roomData.owner));
 
   // 1. Odayı API'den Çekme
   useEffect(() => {
@@ -92,6 +92,14 @@ const ActiveRoom = ({ profile }) => {
         if (alreadyExists) return prevRoom;
         return { ...prevRoom, members: [...(prevRoom.members || []), data.user] };
       });
+
+      // ÇÖZÜM: Yeni biri girdiğinde, sadece kurucu anlık güncel sayacı fırlatır!
+      if (isOwnerRef.current) {
+         socket.emit("sync_timer", {
+           roomId: roomIdStr,
+           timerData: timerRef.current // Referanstan aldık, React saniyede bir patlamayacak!
+         });
+      }
     };
 
     const handleUserLeft = (data) => {
@@ -117,7 +125,7 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [socket, roomData?.id, roomData?._id]);
 
-  // 🚀 3. SAYAÇ SENKRONİZASYONU (SADECE KURUCU YAYIN YAPAR)
+  // 3. SAYAÇ DURUMU DEĞİŞTİĞİNDE SİNYAL YAYMA (Kurucu için)
   useEffect(() => {
     const realRoomId = roomData?.id || roomData?._id;
     if (isOwner && socket && realRoomId) {
@@ -126,25 +134,9 @@ const ActiveRoom = ({ profile }) => {
         timerData: { timeLeft, isActive, selectedMinutes }
       });
     }
-  }, [isActive, selectedMinutes, isOwner, socket, roomData?.id, roomData?._id]); // timeLeft'i koymadık ki her saniye spam yapmasın, sadece durum değişince gitsin!
+  }, [isActive, selectedMinutes]);
 
-  // 🚀 4. YENİ BİRİ GİRDİĞİNDE KURUCU ANLIK SÜREYİ FIRLATIR
-  useEffect(() => {
-    const realRoomId = roomData?.id || roomData?._id;
-    if (!socket || !isOwner || !realRoomId) return;
-
-    const handleSendSync = () => {
-       socket.emit("sync_timer", {
-         roomId: String(realRoomId),
-         timerData: { timeLeft, isActive, selectedMinutes }
-       });
-    };
-    
-    socket.on('user_joined', handleSendSync);
-    return () => socket.off('user_joined', handleSendSync);
-  }, [socket, isOwner, timeLeft, isActive, selectedMinutes, roomData?.id, roomData?._id]);
-
-  // 🚀 5. ÜYELERİN SİNYALİ DİNLEME VE İTAAT ETME ALANI
+  // 4. ÜYELERİN SİNYALİ DİNLEME VE İTAAT ETME ALANI
   useEffect(() => {
     if (!socket || isOwner) return;
 
@@ -158,7 +150,39 @@ const ActiveRoom = ({ profile }) => {
     return () => socket.off("timer_updated", handleTimerUpdate);
   }, [socket, isOwner, setTimeLeft, setIsActive, setSelectedMinutes]);
 
-  // --- KONTROLLER ---
+  // --- ÖZEL BUTON KONTROLLERİ (SIFIRLA SORUNUNUN ÇÖZÜMÜ) ---
+  
+  const handleRoomReset = () => {
+    handleReset(); // Var olan sıfırlama çalışır
+    // ÇÖZÜM: Kurucuysa zorla "sıfırlandı" sinyalini atar
+    if (isOwner && socket && roomData) {
+       socket.emit("sync_timer", {
+         roomId: String(roomData.id || roomData._id),
+         timerData: { timeLeft: selectedMinutes * 60, isActive: false, selectedMinutes }
+       });
+    }
+  };
+
+  const handleRoomDurationSelect = (min) => {
+    handleDurationSelect(min);
+    if (isOwner && socket && roomData) {
+       socket.emit("sync_timer", {
+         roomId: String(roomData.id || roomData._id),
+         timerData: { timeLeft: min * 60, isActive: false, selectedMinutes: min }
+       });
+    }
+  };
+
+  const handleRoomToggle = () => {
+    toggleTimer();
+    if (isOwner && socket && roomData) {
+       socket.emit("sync_timer", {
+         roomId: String(roomData.id || roomData._id),
+         timerData: { timeLeft, isActive: !isActive, selectedMinutes }
+       });
+    }
+  };
+
   const handleLeaveRoom = async () => {
     if (isLeaving || !roomData) return;
     try {
@@ -256,13 +280,12 @@ const ActiveRoom = ({ profile }) => {
           <div className={`absolute w-[500px] h-[500px] rounded-full blur-[120px] transition-all duration-1000 ${isActive ? 'bg-orange-600/10' : 'bg-indigo-600/10'}`}></div>
           
           <div className="z-10 flex flex-col items-center">
-            {/* Süre Seçiciler - SADECE KURUCUYA GÖRÜNÜR */}
             {isOwner && (
               <div className="flex gap-3 mb-10">
                 {[1, 25, 45, 60].map((min) => (
                   <button
                     key={min}
-                    onClick={() => handleDurationSelect(min)}
+                    onClick={() => handleRoomDurationSelect(min)} // DEĞİŞTİRİLDİ
                     disabled={isActive}
                     className={`px-6 py-2.5 rounded-2xl text-[10px] font-black transition-all ${selectedMinutes === min ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/40 translate-y-[-2px]' : 'bg-slate-800/40 text-slate-500 hover:text-white border border-transparent hover:border-slate-700'}`}
                   >
@@ -272,7 +295,6 @@ const ActiveRoom = ({ profile }) => {
               </div>
             )}
 
-            {/* DAİRE VE SAYAÇ */}
             <div className={`relative w-[420px] h-[420px] flex items-center justify-center ${!isOwner && !isActive ? 'mt-16' : ''}`}>
               <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 450 450">
                 <circle cx="225" cy="225" r={radius} fill="transparent" stroke="currentColor" strokeWidth="8" className="text-slate-800/20" />
@@ -296,16 +318,16 @@ const ActiveRoom = ({ profile }) => {
               </div>
             </div>
 
-            {/* Kontroller */}
             {isOwner ? (
               <div className="flex gap-4 mt-12">
                 <button 
-                  onClick={toggleTimer}
+                  onClick={handleRoomToggle} // DEĞİŞTİRİLDİ
                   className={`w-52 py-5 rounded-[2rem] font-black text-xs tracking-[0.3em] transition-all hover:-translate-y-1 active:scale-95 ${isActive ? 'bg-orange-500 shadow-xl shadow-orange-500/20' : 'bg-indigo-600 shadow-xl shadow-indigo-600/20'} text-white`}
                 >
                   {isActive ? "DURAKLAT" : "ODAKLAN"}
                 </button>
-                <button onClick={handleReset} className="w-16 h-16 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-white rounded-full transition-all border border-slate-700 shadow-lg">
+                <button onClick={handleRoomReset} className="w-16 h-16 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-white rounded-full transition-all border border-slate-700 shadow-lg">
+                  {/* DEĞİŞTİRİLDİ */}
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
               </div>
