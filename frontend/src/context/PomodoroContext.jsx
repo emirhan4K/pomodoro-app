@@ -91,7 +91,7 @@ export const PomodoroProvider = ({ children }) => {
   };
 
   return (
-    <PomodoroContext.Provider
+   <PomodoroContext.Provider
       value={{
         timeLeft,
         isActive,
@@ -101,6 +101,9 @@ export const PomodoroProvider = ({ children }) => {
         handleDurationSelect,
         showCongrats,
         setShowCongrats,
+        setTimeLeft, 
+        setIsActive, 
+        setSelectedMinutes 
       }}
     >
       {children}

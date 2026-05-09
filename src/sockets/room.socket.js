@@ -22,6 +22,13 @@ module.exports = (io, socket) => {
     });
   };
 
+  //Sayaç Senkronizasyonu (Oda sahibinden gelen canlı sayaç verisi)
+  const syncTimer = ({ roomId, timerData }) => {
+    // Gelen veriyi (kalan süre, aktiflik durumu vb.) odadaki DİĞER KİŞİLERE fırlat
+    socket.to(roomId).emit("timer_updated", timerData);
+  };
+
   socket.on("join_room", joinRoom);
   socket.on("leave_room", leaveRoom);
+  socket.on("sync_timer", syncTimer);
 };
