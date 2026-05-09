@@ -23,9 +23,9 @@ module.exports = (io, socket) => {
   };
 
   //Sayaç Senkronizasyonu (Oda sahibinden gelen canlı sayaç verisi)
-  const syncTimer = ({ roomId, timerData }) => {
-    // Gelen veriyi (kalan süre, aktiflik durumu vb.) odadaki DİĞER KİŞİLERE fırlat
-    socket.to(roomId).emit("timer_updated", timerData);
+  const syncTimer = (data) => {
+    // Gelen veriyi olduğu gibi, hiç dokunmadan odadaki diğerlerine fırlat
+    socket.to(data.roomId).emit("timer_updated", data);
   };
 
   socket.on("join_room", joinRoom);
