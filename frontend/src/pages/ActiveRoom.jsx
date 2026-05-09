@@ -23,6 +23,12 @@ const ActiveRoom = ({ profile }) => {
     showCongrats, setShowCongrats 
   } = usePomodoro();
 
+  // Profil bilgisini güvenli bir referansa alıyoruz
+  const profileRef = useRef(profile);
+  useEffect(() => {
+    profileRef.current = profile;
+  }, [profile]);
+
   const radius = 190;
   const circumference = 2 * Math.PI * radius;
   const totalSeconds = selectedMinutes * 60;
@@ -34,7 +40,16 @@ const ActiveRoom = ({ profile }) => {
     const fetchRoomDetails = async () => {
       try {
         const response = await RoomService.getRoomBySlug(roomSlug);
-        const data = response?.room || response?.data || response;
+        let data = response?.room || response?.data || response;
+        
+        // ÇÖZÜM: Odaya girdiğimizde, eğer API'den gelen listede yoksak kendimizi anında ekleyelim!
+        if (profileRef.current && data.members) {
+          const amIHere = data.members.some(m => String(m._id || m.id) === String(profileRef.current._id || profileRef.current.id));
+          if (!amIHere) {
+            data.members = [...data.members, profileRef.current];
+          }
+        }
+
         setRoomData(data);
         roomIdRef.current = data.id || data._id;
       } catch (error) { 
@@ -44,7 +59,6 @@ const ActiveRoom = ({ profile }) => {
         setIsLoading(false); 
       }
     };
-
     if (roomSlug) fetchRoomDetails();
 
     return () => {
@@ -54,25 +68,25 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [roomSlug, navigate]);
 
+  // 2. SOCKET.IO MANTIĞI (F5 Gerektirmeyen Kurşun Geçirmez Versiyon)
   useEffect(() => {
-    // DİKKAT: Sadece odanın ID'sini alıyoruz ki liste her güncellendiğinde tünel kopmasın!
     const realRoomId = roomData?.id || roomData?._id;
     
-    if (!socket || !profile || !realRoomId) return;
+    if (!socket || !realRoomId) return;
 
-    const roomIdStr = String(realRoomId); // Garanti olsun diye string yaptık
+    const roomIdStr = String(realRoomId);
+    const currentUser = profileRef.current;
 
     // Odaya girildiğini backend'e bildir
-    socket.emit('join_room', { roomId: roomIdStr, user: profile });
+    socket.emit('join_room', { roomId: roomIdStr, user: currentUser });
 
     // BAŞKASI GİRDİĞİNDE (Canlı Ekleme)
-    socket.on('user_joined', (data) => {
+    const handleUserJoined = (data) => {
       setRoomLogs((prev) => [...prev, { type: 'join', text: data.message }]);
       
       setRoomData((prevRoom) => {
         if (!prevRoom) return prevRoom;
         
-        // Bu kişi zaten listede var mı? (ID'leri kesinlikle string olarak karşılaştır)
         const alreadyExists = prevRoom.members?.some(m => 
           String(m._id || m.id) === String(data.user._id || data.user.id)
         );
@@ -84,10 +98,10 @@ const ActiveRoom = ({ profile }) => {
           members: [...(prevRoom.members || []), data.user]
         };
       });
-    });
+    };
 
     // BAŞKASI ÇIKTIĞINDA (Canlı Silme)
-   socket.on('user_left', (data) => {
+    const handleUserLeft = (data) => {
       setRoomLogs((prev) => [...prev, { type: 'leave', text: data.message }]);
       
       setRoomData((prevRoom) => {
@@ -99,15 +113,19 @@ const ActiveRoom = ({ profile }) => {
           )
         };
       });
-    });
+    };
+
+    socket.on('user_joined', handleUserJoined);
+    socket.on('user_left', handleUserLeft);
 
     // Temizlik
     return () => {
-      socket.emit('leave_room', { roomId: roomIdStr, user: profile });
-      socket.off('user_joined');
-      socket.off('user_left');
+      socket.emit('leave_room', { roomId: roomIdStr, user: currentUser });
+      socket.off('user_joined', handleUserJoined);
+      socket.off('user_left', handleUserLeft);
     };
-  }, [socket, profile, roomData]);
+  // DİKKAT: Bağımlılıklarda sadece oda ID'si ve socket var. profile veya roomData objesi YOK!
+  }, [socket, roomData?.id, roomData?._id]);
 
   const handleLeaveRoom = async () => {
     if (isLeaving || !roomData) return;
