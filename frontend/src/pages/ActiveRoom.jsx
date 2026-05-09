@@ -24,7 +24,7 @@ const ActiveRoom = ({ profile }) => {
     setTimeLeft, setIsActive, setSelectedMinutes 
   } = usePomodoro();
 
-  // --- REFS: React döngülerini kırmak için verileri hapsediyoruz ---
+  // --- REFS: React Döngülerini Kırmak İçin Güvenlik Duvarı ---
   const profileRef = useRef(profile);
   useEffect(() => { profileRef.current = profile; }, [profile]);
 
@@ -35,7 +35,6 @@ const ActiveRoom = ({ profile }) => {
   const timerRef = useRef({ timeLeft, isActive, selectedMinutes });
   useEffect(() => { timerRef.current = { timeLeft, isActive, selectedMinutes }; }, [timeLeft, isActive, selectedMinutes]);
 
-  // ÇÖZÜM İÇİN YENİ EKLENDİ: Odanın güncel kişi listesini tutan güvenlik duvarı
   const membersRef = useRef([]);
   useEffect(() => {
     if (roomData?.members) membersRef.current = roomData.members;
@@ -54,6 +53,7 @@ const ActiveRoom = ({ profile }) => {
         const response = await RoomService.getRoomBySlug(roomSlug);
         let data = response?.room || response?.data || response;
         
+        // Odaya girince kendimizi listeye ekliyoruz
         if (profileRef.current && data.members) {
           const amIHere = data.members.some(m => String(m._id || m.id) === String(profileRef.current._id || profileRef.current.id));
           if (!amIHere) data.members = [...data.members, profileRef.current];
@@ -76,7 +76,7 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [roomSlug, navigate]);
 
-  // 2. SOCKET.IO: GİRİŞ/ÇIKIŞ YÖNETİMİ
+  // 2. SOCKET.IO: GİRİŞ/ÇIKIŞ VE ANA YAYIN (HOST) YÖNETİMİ
   useEffect(() => {
     const realRoomId = roomData?.id || roomData?._id;
     if (!socket || !realRoomId) return;
@@ -93,22 +93,22 @@ const ActiveRoom = ({ profile }) => {
     const handleUserJoined = (data) => {
       setRoomLogs((prev) => [...prev, { type: 'join', text: data.message }]);
       
-      let updatedMembers = membersRef.current;
-      setRoomData((prevRoom) => {
-        if (!prevRoom) return prevRoom;
-        const alreadyExists = prevRoom.members?.some(m => String(m._id || m.id) === String(data.user._id || data.user.id));
-        if (alreadyExists) return prevRoom;
-        
-        updatedMembers = [...(prevRoom.members || []), data.user];
-        return { ...prevRoom, members: updatedMembers };
-      });
+      const currentMembers = membersRef.current || [];
+      const alreadyExists = currentMembers.some(m => String(m._id || m.id) === String(data.user._id || data.user.id));
+      
+      let newMembersList = currentMembers;
+      
+      if (!alreadyExists) {
+        newMembersList = [...currentMembers, data.user];
+        setRoomData((prevRoom) => prevRoom ? { ...prevRoom, members: newMembersList } : prevRoom);
+      }
 
-      // ÇÖZÜM: Kurucu, odaya yeni giren kişiye SÜREYİ ve EN GÜNCEL KİŞİ LİSTESİNİ fırlatır!
+      // ÇÖZÜM 1: Kurucu, odaya yeni giren kişiye anında EN GÜNCEL KİŞİLERİ ve SÜREYİ fırlatır!
       if (isOwnerRef.current) {
          socket.emit("sync_timer", {
            roomId: roomIdStr,
            timerData: timerRef.current,
-           activeMembers: updatedMembers 
+           activeMembers: newMembersList 
          });
       }
     };
@@ -136,17 +136,31 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [socket, roomData?.id, roomData?._id]);
 
-  // 3. ÜYELERİN SİNYALİ DİNLEME VE İTAAT ETME ALANI
+  // 3. SÜRE DEĞİŞTİĞİNDE OTOMATİK SİNYAL YAYMA (Sadece Kurucu Yayabilir)
   useEffect(() => {
-    if (!socket || isOwner) return;
+    const realRoomId = roomData?.id || roomData?._id;
+    if (isOwner && socket && realRoomId) {
+      socket.emit("sync_timer", {
+        roomId: String(realRoomId),
+        timerData: { timeLeft, isActive, selectedMinutes },
+        activeMembers: membersRef.current
+      });
+    }
+  }, [isActive, selectedMinutes]); // Süre ve aktiflik durumu değiştiğinde yay
+
+  // 4. ÜYELERİN SİNYALİ DİNLEME VE İTAAT ETME ALANI
+  useEffect(() => {
+    if (!socket || isOwner) return; // Kurucuysa sinyal dinlemez, kendi yönetir!
 
     const handleTimerUpdate = (data) => {
-      // 1. Kurucunun sayacına itaat et
-      setTimeLeft(data.timeLeft);
-      setIsActive(data.isActive);
-      setSelectedMinutes(data.selectedMinutes);
+      // ÇÖZÜM 2: İşte çökmeye sebep olan yeri düzelttik! data.timerData'nın içinden alıyoruz!
+      if (data.timerData) {
+        setTimeLeft(data.timerData.timeLeft);
+        setIsActive(data.timerData.isActive);
+        setSelectedMinutes(data.timerData.selectedMinutes);
+      }
       
-      // 2. ÇÖZÜM: Kurucunun yolladığı GERÇEK üye listesine itaat et (Hayalet oyuncuları siler/getirir)
+      // Kurucunun gönderdiği güncel kişi listesini ekrana yapıştır
       if (data.activeMembers) {
          setRoomData(prev => {
             if (!prev) return prev;
@@ -216,6 +230,8 @@ const ActiveRoom = ({ profile }) => {
   };
 
   const formatTime = (seconds) => {
+    // Çökme ihtimaline karşı ekstra güvenlik
+    if (isNaN(seconds) || seconds < 0) seconds = 0; 
     const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
@@ -291,6 +307,7 @@ const ActiveRoom = ({ profile }) => {
           <div className={`absolute w-[500px] h-[500px] rounded-full blur-[120px] transition-all duration-1000 ${isActive ? 'bg-orange-600/10' : 'bg-indigo-600/10'}`}></div>
           
           <div className="z-10 flex flex-col items-center">
+            {/* Süre Seçiciler - SADECE KURUCUYA GÖRÜNÜR */}
             {isOwner && (
               <div className="flex gap-3 mb-10">
                 {[1, 25, 45, 60].map((min) => (
@@ -329,6 +346,7 @@ const ActiveRoom = ({ profile }) => {
               </div>
             </div>
 
+            {/* Kontroller */}
             {isOwner ? (
               <div className="flex gap-4 mt-12">
                 <button 
