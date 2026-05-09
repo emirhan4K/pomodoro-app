@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useRef } from "react"; // 1. useRef ekledik
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { RoomService } from "../services/api.services";
 import { usePomodoro } from "../context/PomodoroContext"; 
 import RoomCongratsModal from "../components/RoomCongratsModal";
+import { useSocket } from "../context/SocketContext"; 
 
 const ActiveRoom = ({ profile }) => {
   const { id: roomSlug } = useParams();
   const navigate = useNavigate();
+  const socket = useSocket(); 
 
   const [roomData, setRoomData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [roomLogs, setRoomLogs] = useState([]); 
   
-  // 2. Odanın gerçek ID'sini tutmak için bir Ref oluşturuyoruz
-  // Cleanup fonksiyonu state'e güvenemez ama ref'e güvenir.
   const roomIdRef = useRef(null);
 
   const { 
@@ -28,14 +29,13 @@ const ActiveRoom = ({ profile }) => {
   const progress = totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
   const strokeDashoffset = circumference - progress * circumference;
 
+  // 1. Odayı API'den Çekme İşlemi
   useEffect(() => {
     const fetchRoomDetails = async () => {
       try {
         const response = await RoomService.getRoomBySlug(roomSlug);
         const data = response?.room || response?.data || response;
         setRoomData(data);
-        
-        // 3. ID'yi Ref'e kaydediyoruz
         roomIdRef.current = data.id || data._id;
       } catch (error) { 
         console.error("Oda bulunamadı", error); 
@@ -47,16 +47,63 @@ const ActiveRoom = ({ profile }) => {
 
     if (roomSlug) fetchRoomDetails();
 
-    // 4. İŞTE SİHİRLİ TEMİZLİK FONKSİYONU (A'dan Z'ye Çözüm)
     return () => {
-      // Bu fonksiyon kullanıcı sayfadan ayrıldığı an ÇALIŞIR.
       if (roomIdRef.current) {
-        // Sessizce backend'e "ben ayrıldım" bilgisini gönderir.
-        // await koymuyoruz çünkü sayfa zaten kapanıyor, arka planda ateşlesin yeter.
         RoomService.leaveRoom(roomIdRef.current).catch(err => console.log("Otomatik ayrılma hatası", err));
       }
     };
   }, [roomSlug, navigate]);
+
+  // 2. SOCKET.IO MANTIĞI: CANLI LİSTE VE LOGLAR
+  useEffect(() => {
+    if (!socket || !profile || !roomData) return;
+
+    const realRoomId = roomData.id || roomData._id;
+
+    // Odaya girildiğini backend'e bildir
+    socket.emit('join_room', { roomId: realRoomId, user: profile });
+
+    // BAŞKASI GİRDİĞİNDE (Canlı Ekleme)
+    socket.on('user_joined', (data) => {
+      // 1. Sağ panele log düş
+      setRoomLogs((prev) => [...prev, { type: 'join', text: data.message }]);
+      
+      // 2. Sol Panele (ve Toplam Sayıya) anında ekle
+      setRoomData((prevRoom) => {
+        if (!prevRoom) return prevRoom;
+        // Eğer bu kişi zaten listede varsa (API'den geldiyse) tekrar ekleme
+        const alreadyExists = prevRoom.members?.some(m => (m._id || m.id) === (data.user._id || data.user.id));
+        if (alreadyExists) return prevRoom;
+        
+        return {
+          ...prevRoom,
+          members: [...(prevRoom.members || []), data.user]
+        };
+      });
+    });
+
+    // BAŞKASI ÇIKTIĞINDA (Canlı Silme)
+    socket.on('user_left', (data) => {
+      // 1. Sağ panele log düş
+      setRoomLogs((prev) => [...prev, { type: 'leave', text: data.message }]);
+      
+      // 2. Sol Panelden (ve Toplam Sayıdan) anında sil
+      setRoomData((prevRoom) => {
+        if (!prevRoom) return prevRoom;
+        return {
+          ...prevRoom,
+          members: prevRoom.members?.filter(m => (m._id || m.id) !== (data.user._id || data.user.id))
+        };
+      });
+    });
+
+    // Temizlik
+    return () => {
+      socket.emit('leave_room', { roomId: realRoomId, user: profile });
+      socket.off('user_joined');
+      socket.off('user_left');
+    };
+  }, [socket, profile, roomData]);
 
   const handleLeaveRoom = async () => {
     if (isLeaving || !roomData) return;
@@ -77,7 +124,6 @@ const ActiveRoom = ({ profile }) => {
         setIsLeaving(true);
         const realRoomId = roomData.id || roomData._id;
         await RoomService.deleteRoom(realRoomId);
-        // Silme işleminde Ref'i boşaltıyoruz ki cleanup tekrar silmeye çalışmasın
         roomIdRef.current = null; 
         navigate("/rooms");
       } catch (error) {
@@ -120,7 +166,6 @@ const ActiveRoom = ({ profile }) => {
           </div>
           
           <div className="flex gap-3">
-             {/* Eğer sahibiysen SİLME butonu da burada şık durur */}
              {profile && (profile.id === (roomData.owner?._id || roomData.owner) || profile._id === (roomData.owner?._id || roomData.owner)) && (
                <button onClick={handleDeleteRoom} className="px-5 py-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-500/20 rounded-xl text-xs font-black transition-all uppercase">Odayı Kapat</button>
              )}
@@ -136,7 +181,7 @@ const ActiveRoom = ({ profile }) => {
                 <h3 className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-6">ŞU AN ODADAKİLER</h3>
                 <div className="space-y-5">
                     {roomData.members?.map((m, i) => (
-                        <div key={i} className="flex items-center gap-3 group">
+                        <div key={i} className="flex items-center gap-3 group animate-fade-in-up">
                             <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-black group-hover:border-indigo-500 transition-colors">
                                 {(m.username || "U").charAt(0).toUpperCase()}
                             </div>
@@ -211,6 +256,34 @@ const ActiveRoom = ({ profile }) => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* SAĞ PANEL (CANLI LOGLAR) */}
+        <div className="w-72 border-l border-slate-800/60 bg-[#0f121a] flex flex-col shrink-0">
+            <div className="p-6 border-b border-slate-800/60 bg-emerald-600/5">
+                <h3 className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-2">CANLI HAREKETLER</h3>
+                <p className="text-[10px] text-slate-500 font-bold">Odadaki anlık giriş ve çıkışlar</p>
+            </div>
+            <div className="flex-1 p-4 overflow-y-auto space-y-3">
+              {roomLogs.length === 0 ? (
+                <div className="text-[10px] text-slate-500 font-black tracking-widest text-center mt-10 uppercase opacity-50">
+                  Henüz Hareket Yok
+                </div>
+              ) : (
+                roomLogs.map((log, index) => (
+                  <div
+                    key={index}
+                    className={`text-[10px] font-bold px-3 py-3 rounded-xl border animate-fade-in-up ${
+                      log.type === 'join'
+                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                        : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                    }`}
+                  >
+                    {log.text}
+                  </div>
+                ))
+              )}
+            </div>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import Statistics from "./pages/Statistics";
 import Settings from "./pages/Settings";
 import ActiveRoom from "./pages/ActiveRoom";
 import { PomodoroProvider } from "./context/PomodoroContext";
+import { SocketProvider } from "./context/SocketContext";
 import Rooms from './pages/Room';
 
 function App() {
@@ -67,6 +68,7 @@ function App() {
 
   return (
     <BrowserRouter>
+    <SocketProvider>
       <PomodoroProvider>
         <Routes>
           <Route
@@ -140,6 +142,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </PomodoroProvider>
+      </SocketProvider>
     </BrowserRouter>
   );
 }
