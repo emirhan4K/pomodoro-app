@@ -10,7 +10,6 @@ module.exports = (io, socket) => {
       user: user
     });
   };
-
   // Odadan Ayrılma
   const leaveRoom = ({ roomId, user }) => {
     socket.leave(roomId);
@@ -21,14 +20,21 @@ module.exports = (io, socket) => {
       user: user
     });
   };
-
   //Sayaç Senkronizasyonu (Oda sahibinden gelen canlı sayaç verisi)
   const syncTimer = (data) => {
-    // Gelen veriyi olduğu gibi, hiç dokunmadan odadaki diğerlerine fırlat
     socket.to(data.roomId).emit("timer_updated", data);
+  };
+
+  const sendChatMessage = (data) => {
+    io.to(data.roomId).emit("new_message", {
+      text: data.message,
+      user: data.user,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
   };
 
   socket.on("join_room", joinRoom);
   socket.on("leave_room", leaveRoom);
   socket.on("sync_timer", syncTimer);
+  socket.on("send_message", sendChatMessage);
 };
