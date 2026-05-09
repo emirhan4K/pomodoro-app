@@ -54,25 +54,29 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [roomSlug, navigate]);
 
-  // 2. SOCKET.IO MANTIĞI: CANLI LİSTE VE LOGLAR
   useEffect(() => {
-    if (!socket || !profile || !roomData) return;
+    // DİKKAT: Sadece odanın ID'sini alıyoruz ki liste her güncellendiğinde tünel kopmasın!
+    const realRoomId = roomData?.id || roomData?._id;
+    
+    if (!socket || !profile || !realRoomId) return;
 
-    const realRoomId = roomData.id || roomData._id;
+    const roomIdStr = String(realRoomId); // Garanti olsun diye string yaptık
 
     // Odaya girildiğini backend'e bildir
-    socket.emit('join_room', { roomId: realRoomId, user: profile });
+    socket.emit('join_room', { roomId: roomIdStr, user: profile });
 
     // BAŞKASI GİRDİĞİNDE (Canlı Ekleme)
     socket.on('user_joined', (data) => {
-      // 1. Sağ panele log düş
       setRoomLogs((prev) => [...prev, { type: 'join', text: data.message }]);
       
-      // 2. Sol Panele (ve Toplam Sayıya) anında ekle
       setRoomData((prevRoom) => {
         if (!prevRoom) return prevRoom;
-        // Eğer bu kişi zaten listede varsa (API'den geldiyse) tekrar ekleme
-        const alreadyExists = prevRoom.members?.some(m => (m._id || m.id) === (data.user._id || data.user.id));
+        
+        // Bu kişi zaten listede var mı? (ID'leri kesinlikle string olarak karşılaştır)
+        const alreadyExists = prevRoom.members?.some(m => 
+          String(m._id || m.id) === String(data.user._id || data.user.id)
+        );
+        
         if (alreadyExists) return prevRoom;
         
         return {
@@ -83,23 +87,23 @@ const ActiveRoom = ({ profile }) => {
     });
 
     // BAŞKASI ÇIKTIĞINDA (Canlı Silme)
-    socket.on('user_left', (data) => {
-      // 1. Sağ panele log düş
+   socket.on('user_left', (data) => {
       setRoomLogs((prev) => [...prev, { type: 'leave', text: data.message }]);
       
-      // 2. Sol Panelden (ve Toplam Sayıdan) anında sil
       setRoomData((prevRoom) => {
         if (!prevRoom) return prevRoom;
         return {
           ...prevRoom,
-          members: prevRoom.members?.filter(m => (m._id || m.id) !== (data.user._id || data.user.id))
+          members: prevRoom.members?.filter(m => 
+            String(m._id || m.id) !== String(data.user._id || data.user.id)
+          )
         };
       });
     });
 
     // Temizlik
     return () => {
-      socket.emit('leave_room', { roomId: realRoomId, user: profile });
+      socket.emit('leave_room', { roomId: roomIdStr, user: profile });
       socket.off('user_joined');
       socket.off('user_left');
     };
