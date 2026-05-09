@@ -23,8 +23,6 @@ const ActiveRoom = ({ profile }) => {
     showCongrats, setShowCongrats,
     setTimeLeft, setIsActive, setSelectedMinutes 
   } = usePomodoro();
-
-  // --- REFS: React Döngülerini Kırmak İçin Güvenlik Duvarı ---
   const profileRef = useRef(profile);
   useEffect(() => { profileRef.current = profile; }, [profile]);
 
@@ -138,15 +136,24 @@ const ActiveRoom = ({ profile }) => {
 
   // 3. SÜRE DEĞİŞTİĞİNDE OTOMATİK SİNYAL YAYMA (Sadece Kurucu Yayabilir)
   useEffect(() => {
-    const realRoomId = roomData?.id || roomData?._id;
-    if (isOwner && socket && realRoomId) {
+  const realRoomId = roomData?.id || roomData?._id;
+  
+  // Sadece kurucuysak ve oda aktifse yayın yap
+  if (isOwner && socket && realRoomId && isActive) {
+    // Her 5 saniyede bir "Zorunlu Zaman Güncellemesi" göndererek kaymayı engelle
+    const syncInterval = setInterval(() => {
       socket.emit("sync_timer", {
         roomId: String(realRoomId),
-        timerData: { timeLeft, isActive, selectedMinutes },
+        timeLeft: timeLeft, 
+        isActive: isActive, 
+        selectedMinutes: selectedMinutes,
         activeMembers: membersRef.current
       });
-    }
-  }, [isActive, selectedMinutes]); // Süre ve aktiflik durumu değiştiğinde yay
+    }, 5000); // 5 saniyede bir "kalibre" et
+
+    return () => clearInterval(syncInterval);
+  }
+}, [isActive, timeLeft, isOwner]); // Süre ve aktiflik durumu değiştiğinde yay
 
   // 4. ÜYELERİN SİNYALİ DİNLEME VE İTAAT ETME ALANI
   useEffect(() => {
