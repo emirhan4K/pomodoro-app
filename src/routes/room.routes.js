@@ -18,6 +18,7 @@ router.post(
     roomController.createRoom
 );
 router.get("/:slug", roomController.getRoomBySlug);
+router.get("/:roomId/messages", roomController.getRoomMessages);
 router.post("/:roomId/join", roomController.joinRoom);
 router.post("/:roomId/leave", roomController.leaveRoom);
 router.put("/:roomId/avatar", uploadAvatar.single('avatar'), roomController.uploadAvatar);

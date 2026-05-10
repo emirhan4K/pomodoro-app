@@ -30,6 +30,14 @@ export const RoomService = {
     const response = await api.get(`/rooms/${slug}`);
     return response.data;
   },
+  getRoomMessages: async (roomId) => {
+  try {
+    const response = await api.get(`/rooms/${roomId}/messages`); 
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+},
   createRoom: async (data) => (await api.post("/rooms", data)).data,
   joinRoom: async (id, password) =>
     (await api.post(`/rooms/${id}/join`, { password })).data,

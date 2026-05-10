@@ -10,11 +10,15 @@ const ActiveRoom = ({ profile }) => {
   const { id: roomSlug } = useParams();
   const navigate = useNavigate();
   const socket = useSocket();
-  const [messages, setMessages] = useState([]);
+
   const [roomData, setRoomData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLeaving, setIsLeaving] = useState(false);
   const [roomLogs, setRoomLogs] = useState([]);
+
+  // CHAT STATE'LERİ
+  const [messages, setMessages] = useState([]); 
+  const [typingUsers, setTypingUsers] = useState([]);
 
   const roomIdRef = useRef(null);
 
@@ -31,6 +35,7 @@ const ActiveRoom = ({ profile }) => {
     setIsActive,
     setSelectedMinutes,
   } = usePomodoro();
+  
   const profileRef = useRef(profile);
   useEffect(() => {
     profileRef.current = profile;
@@ -63,35 +68,13 @@ const ActiveRoom = ({ profile }) => {
     totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
   const strokeDashoffset = circumference - progress * circumference;
 
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on("new_message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-
-    return () => socket.off("new_message");
-  }, [socket]);
-
-  const handleSendMessage = (text) => {
-    const realRoomId = roomData?.id || roomData?._id;
-    if (socket && realRoomId) {
-      socket.emit("send_message", {
-        roomId: String(realRoomId),
-        message: text,
-        user: profile,
-      });
-    }
-  };
-
-  // 1. Odayı API'den Çekme
+  // 1. Odayı ve Geçmiş Mesajları API'den Çekme
   useEffect(() => {
     const fetchRoomDetails = async () => {
       try {
         const response = await RoomService.getRoomBySlug(roomSlug);
         let data = response?.room || response?.data || response;
 
-        // Odaya girince kendimizi listeye ekliyoruz
         if (profileRef.current && data.members) {
           const amIHere = data.members.some(
             (m) =>
@@ -103,6 +86,18 @@ const ActiveRoom = ({ profile }) => {
 
         setRoomData(data);
         roomIdRef.current = data.id || data._id;
+
+        // ÇÖZÜM: GEÇMİŞ MESAJLARI BURADA ÇEKİYORUZ
+        const realId = data.id || data._id;
+        if (realId) {
+          try {
+            const msgResponse = await RoomService.getRoomMessages(realId);
+            if (msgResponse.success) setMessages(msgResponse.messages);
+          } catch (err) {
+            console.error("Geçmiş mesajlar çekilemedi", err);
+          }
+        }
+
       } catch (error) {
         navigate("/rooms");
       } finally {
@@ -118,7 +113,66 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [roomSlug, navigate]);
 
-  // 2. SOCKET.IO: GİRİŞ/ÇIKIŞ VE ANA YAYIN (HOST) YÖNETİMİ
+  // 2. CHAT DİNLEYİCİLERİ (Görüldü ve Yazıyor Sinyalleri)
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (msg) => {
+      setMessages((prev) => [...prev, msg]);
+      
+      // Mesaj geldiğinde "Görüldü" sinyali fırlat
+      if (profileRef.current && (roomData?.id || roomData?._id)) {
+         socket.emit("mark_seen", { 
+           roomId: String(roomData.id || roomData._id), 
+           messageId: msg._id, 
+           userId: profileRef.current.id || profileRef.current._id 
+         });
+      }
+    };
+
+    const handleUserTyping = ({ username, isTyping }) => {
+      setTypingUsers(prev => {
+        if (isTyping) {
+          if (!prev.includes(username)) return [...prev, username];
+          return prev;
+        }
+        return prev.filter(u => u !== username);
+      });
+    };
+
+    socket.on("new_message", handleNewMessage);
+    socket.on("user_typing", handleUserTyping);
+
+    return () => {
+      socket.off("new_message", handleNewMessage);
+      socket.off("user_typing", handleUserTyping);
+    };
+  }, [socket, roomData?.id, roomData?._id]);
+
+  // --- CHAT KONTROLLERİ ---
+  const handleSendMessage = (text) => {
+    const realRoomId = roomData?.id || roomData?._id;
+    if (socket && realRoomId) {
+      socket.emit("send_message", {
+        roomId: String(realRoomId),
+        message: text,
+        user: profile,
+      });
+    }
+  };
+
+  const handleTyping = (isTyping) => {
+    const realId = roomData?.id || roomData?._id;
+    if (socket && realId) {
+      socket.emit("typing", {
+        roomId: String(realId),
+        username: profileRef.current?.username,
+        isTyping
+      });
+    }
+  };
+
+  // 3. SOCKET.IO: GİRİŞ/ÇIKIŞ VE ANA YAYIN (HOST) YÖNETİMİ
   useEffect(() => {
     const realRoomId = roomData?.id || roomData?._id;
     if (!socket || !realRoomId) return;
@@ -149,7 +203,6 @@ const ActiveRoom = ({ profile }) => {
         );
       }
 
-      // ÇÖZÜM 1: Kurucu, odaya yeni giren kişiye anında EN GÜNCEL KİŞİLERİ ve SÜREYİ fırlatır!
       if (isOwnerRef.current) {
         socket.emit("sync_timer", {
           roomId: roomIdStr,
@@ -185,40 +238,38 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [socket, roomData?.id, roomData?._id]);
 
-  // 3. SÜRE DEĞİŞTİĞİNDE OTOMATİK SİNYAL YAYMA (Sadece Kurucu Yayabilir)
+  // 4. SÜRE DEĞİŞTİĞİNDE OTOMATİK SİNYAL YAYMA (Sadece Kurucu Yayabilir)
   useEffect(() => {
     const realRoomId = roomData?.id || roomData?._id;
 
-    // Sadece kurucuysak ve oda aktifse yayın yap
     if (isOwner && socket && realRoomId && isActive) {
-      // Her 5 saniyede bir "Zorunlu Zaman Güncellemesi" göndererek kaymayı engelle
       const syncInterval = setInterval(() => {
         socket.emit("sync_timer", {
           roomId: String(realRoomId),
-          timeLeft: timeLeft,
-          isActive: isActive,
-          selectedMinutes: selectedMinutes,
+          timerData: {
+            timeLeft: timeLeft,
+            isActive: isActive,
+            selectedMinutes: selectedMinutes,
+          },
           activeMembers: membersRef.current,
         });
-      }, 5000); // 5 saniyede bir "kalibre" et
+      }, 5000); 
 
       return () => clearInterval(syncInterval);
     }
-  }, [isActive, timeLeft, isOwner]); // Süre ve aktiflik durumu değiştiğinde yay
+  }, [isActive, timeLeft, isOwner, selectedMinutes]); 
 
-  // 4. ÜYELERİN SİNYALİ DİNLEME VE İTAAT ETME ALANI
+  // 5. ÜYELERİN SİNYALİ DİNLEME VE İTAAT ETME ALANI
   useEffect(() => {
-    if (!socket || isOwner) return; // Kurucuysa sinyal dinlemez, kendi yönetir!
+    if (!socket || isOwner) return;
 
     const handleTimerUpdate = (data) => {
-      // ÇÖZÜM 2: İşte çökmeye sebep olan yeri düzelttik! data.timerData'nın içinden alıyoruz!
       if (data.timerData) {
         setTimeLeft(data.timerData.timeLeft);
         setIsActive(data.timerData.isActive);
         setSelectedMinutes(data.timerData.selectedMinutes);
       }
 
-      // Kurucunun gönderdiği güncel kişi listesini ekrana yapıştır
       if (data.activeMembers) {
         setRoomData((prev) => {
           if (!prev) return prev;
@@ -232,7 +283,6 @@ const ActiveRoom = ({ profile }) => {
   }, [socket, isOwner, setTimeLeft, setIsActive, setSelectedMinutes]);
 
   // --- ÖZEL BUTON KONTROLLERİ ---
-
   const handleRoomReset = () => {
     handleReset();
     if (isOwner && socket && roomData) {
@@ -302,7 +352,6 @@ const ActiveRoom = ({ profile }) => {
   };
 
   const formatTime = (seconds) => {
-    // Çökme ihtimaline karşı ekstra güvenlik
     if (isNaN(seconds) || seconds < 0) seconds = 0;
     const m = Math.floor(seconds / 60)
       .toString()
@@ -386,7 +435,7 @@ const ActiveRoom = ({ profile }) => {
       <div className="flex flex-1 overflow-hidden">
         {/* SOL PANEL */}
         <div className="w-72 border-r border-slate-800/60 bg-[#0f121a] flex flex-col shrink-0">
-          <div className="p-6 border-b border-slate-800/60 bg-indigo-600/5">
+          <div className="p-6 border-b border-slate-800/60 bg-indigo-600/5 max-h-[50%] overflow-y-auto custom-scrollbar">
             <h3 className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-6">
               ŞU AN ODADAKİLER
             </h3>
@@ -417,9 +466,17 @@ const ActiveRoom = ({ profile }) => {
               ))}
             </div>
           </div>
-          <div className="flex-1 bg-[#0a0d13]/50 p-4 flex flex-col justify-end">
+          
+          <div className="flex-1 bg-[#0a0d13]/50 p-4 flex flex-col justify-end min-h-[300px]">
             <div className="flex-1 bg-[#0a0d13]/50 flex flex-col overflow-hidden">
-              <ChatBox messages={messages} onSendMessage={handleSendMessage} />
+              {/* CHATBOX BİLEŞENİ GÜNCELLENDİ */}
+              <ChatBox 
+                messages={messages} 
+                currentUser={profile}
+                onSendMessage={handleSendMessage} 
+                onTyping={handleTyping}
+                typingUsers={typingUsers}
+              />
             </div>
           </div>
         </div>

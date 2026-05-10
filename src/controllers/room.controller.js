@@ -1,6 +1,7 @@
 class RoomController {
-  constructor({ roomService }) {
+  constructor({ roomService,messageService }) {
     this.roomService = roomService;
+    this.messageService = messageService;
   }
   createRoom = async (req, res, next) => {
     try {
@@ -107,6 +108,14 @@ class RoomController {
       next(error);
     }
   };
+  getRoomMessages = async(req,res,next) => {
+    try {
+    const messages = await  this.messageService.getHistory(req.params.roomId);
+    res.status(200).json({ success: true, messages });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Hata oluştu" });
+  }
+  }
 }
 
 module.exports = RoomController;
