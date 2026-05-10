@@ -113,6 +113,7 @@ class RoomController {
     const messages = await  this.messageService.getHistory(req.params.roomId);
     res.status(200).json({ success: true, messages });
   } catch (error) {
+    console.error("💥 MESAJ GEÇMİŞİ ÇEKİLİRKEN PATLADI:", error);
     res.status(500).json({ success: false, message: "Hata oluştu" });
   }
   }
