@@ -42,24 +42,23 @@ module.exports = (io, socket) => {
     }
   };
 
-  // 🚀 İŞTE MESAJIN DB'YE YAZILDIĞI VE ÇÖZÜLEN YER
+  // MESAJIN DB'YE YAZILDIĞI VE ÇÖZÜLEN YER
   const sendChatMessage = async (data) => {
     try {
       const { roomId, message, user } = data;
       
-      // Artık container'dan çektiğimiz messageService aslanlar gibi çalışacak!
       const newMessage = await messageService.saveMessage(roomId, user, message);
       
       io.to(roomId).emit("new_message", {
         _id: newMessage._id,
         text: newMessage.text,
         username: newMessage.username,
-        createdAt: newMessage.createdAt
+        createdAt: newMessage.createdAt,
+        user: newMessage.user 
       });
       
-      console.log("✅ Mesaj DB'ye yazıldı:", newMessage.text); // Test için log
     } catch (error) {
-      console.error("❌ Socket Chat Hatası:", error); // Artık patlarsa buraya kırmızı düşecek!
+      console.error("❌ Socket Chat Hatası:", error);
     }
   };
 
