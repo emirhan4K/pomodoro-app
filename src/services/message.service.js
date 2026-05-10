@@ -2,6 +2,9 @@ class MessageService {
   constructor({ messageRepository }) {
     this.messageRepository = messageRepository;
   }
+  async getHistory(roomId) {
+    return await this.messageRepository.findByRoomId(roomId);
+  }
 
   async saveMessage(roomId, user, text) {
     return await this.messageRepository.create({
