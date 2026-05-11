@@ -1,93 +1,96 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../services/api"; 
 import { useAuth } from "../context/AuthContext"; 
-import { FollowService } from "../services/api.services"; 
-import FollowModal from "../components/FollowModal"; // Modal Importu
+import { FollowService, ProfileService } from "../services/api.services"; // ProfileService EKLENDİ
+import FollowModal from "../components/FollowModal"; 
 
 const Profile = ({ profile, requests = [], refresh }) => {
   const [searchParams] = useSearchParams();
+  const { id } = useParams(); // URL'den ID'yi yakalar (/profile/12345)
   const activeTab = searchParams.get("tab") || "stats";
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState([]);
 
-  // Giriş yapmış kullanıcıyı useAuth'tan alıyoruz
   const { profile: currentUser } = useAuth(); 
 
+  // --- DİNAMİK PROFİL STATE'İ ---
+  const [displayProfile, setDisplayProfile] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true);
+
   // --- TAKİP SİSTEMİ STATE'LERİ ---
-  const [isFollowing, setIsFollowing] = useState(profile?.isFollowing || false);
-  const [followersCount, setFollowersCount] = useState(profile?.social?.followersCount || 0);
-  const [followingCount, setFollowingCount] = useState(profile?.social?.followingCount || 0);
-  const [modalData, setModalData] = useState({isOpen: false, type: "", title: "", });
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [modalData, setModalData] = useState({ isOpen: false, type: "", title: "" });
 
-  const openModal = (type, title) => {
-    setModalData({ isOpen: true, type, title });
-  };
+  const openModal = (type, title) => setModalData({ isOpen: true, type, title });
+  const closeModal = () => setModalData({ isOpen: false, type: "", title: "" });
 
-  const closeModal = () => {
-    setModalData({ isOpen: false, type: "", title: "" });
-  };
-
-  // Profilin sana ait olup olmadığını kontrol et
-  const myId = currentUser?.userId || currentUser?.id || currentUser?._id;
-  const viewedId = profile?.userId || profile?.id || profile?._id;
-  const isMyProfile = String(myId) === String(viewedId);
-
+  // --- PROFİL VERİSİNİ ÇEKME (KENDİM VEYA BAŞKASI) ---
   useEffect(() => {
-    // console.log için boş bırakmıştın, burayı silebilirsin veya log atabilirsin.
-  }, [myId, viewedId, isMyProfile]);
+    const fetchProfileData = async () => {
+      setPageLoading(true);
+      try {
+        if (id) {
+          // Başkasının profiline bakıyoruz
+          const res = await ProfileService.getPublicProfile(id);
+          setDisplayProfile(res.data?.data || res.data); // Backend yanıt formatına göre ayarladık
+        } else {
+          // Kendi profilimize bakıyoruz
+          setDisplayProfile(profile);
+        }
+      } catch (error) {
+        console.error("Profil verisi çekilemedi:", error);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    fetchProfileData();
+  }, [id, profile]);
 
   // Profil datası güncellendiğinde stateleri senkronize et
   useEffect(() => {
-    setFollowersCount(profile?.social?.followersCount || 0);
-    setFollowingCount(profile?.social?.followingCount || 0);
-    setIsFollowing(profile?.isFollowing || false);
-  }, [profile]);
+    if (displayProfile) {
+      // social dizisi mi yoksa sayısı mı geliyor kontrol ediyoruz
+      const followers = displayProfile.social?.followers?.length ?? displayProfile.social?.followersCount ?? 0;
+      const following = displayProfile.social?.following?.length ?? displayProfile.social?.followingCount ?? 0;
+      
+      setFollowersCount(followers);
+      setFollowingCount(following);
+      setIsFollowing(displayProfile.isFollowing || false);
+    }
+  }, [displayProfile]);
 
-  // --- PROFİL BİLGİLERİ MANTIĞI ---
-  const displayName = profile?.username || "İsimsiz Kahraman";
-  const bio = profile?.title || "Henüz bir unvan eklenmemiş.";
-
-  const email = profile?.email || "";
-  const nickname = email
-    ? `@${email.split("@")[0].toLowerCase()}`
-    : `@${profile?.username || "odaklayici"}`;
-
-  const initial = displayName.charAt(0).toUpperCase();
-  const avatar = profile?.avatar;
-  const banner = profile?.banner;
-
-  const currentStreak = profile?.currentStreak || 0;
-  const bestStreak = profile?.bestStreak || 0;
-  const totalPomodoros = profile?.totalPomodoros || 0;
-  const totalHours = Number(profile?.totalWorkTime || 0).toFixed(1);
-  const calculatedLevel = profile?.level || 1;
+  // Profilin sana ait olup olmadığını kontrol et
+  const myId = currentUser?.userId || currentUser?.id || currentUser?._id;
+  const viewedId = displayProfile?.userId || displayProfile?.id || displayProfile?._id;
+  const isMyProfile = String(myId) === String(viewedId);
 
   // Arkadaş listesini çek
   useEffect(() => {
     if (activeTab === "friends") {
-      api
-        .get("/friendships")
+      api.get("/friendships")
         .then((res) => setFriends(res.data))
         .catch(() => setFriends([]));
     }
   }, [activeTab]);
 
-  const handleAction = async (type, id) => {
+  const handleAction = async (type, requestId) => {
     try {
       const status = type === "accept" ? "accepted" : "rejected";
-      await api.patch(`/friendships/${id}/respond`, { status });
+      await api.patch(`/friendships/${requestId}/respond`, { status });
       refresh();
     } catch (err) {
       console.error(err);
     }
   };
 
-  // --- TAKİP ET / TAKİPTEN ÇIK AKSİYONU ---
   const handleFollowToggle = async () => {
     try {
-      const targetId = profile?.userId || profile?._id;
+      const targetId = displayProfile?.userId || displayProfile?._id;
       if (isFollowing) {
         await FollowService.unfollow(targetId);
         setIsFollowing(false);
@@ -102,9 +105,34 @@ const Profile = ({ profile, requests = [], refresh }) => {
     }
   };
 
+  // Yüklenme Ekranı (Tasarımına Uygun)
+  if (pageLoading || !displayProfile) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // --- EKRANA BASILACAK DEĞİŞKENLER (displayProfile'a göre) ---
+  const displayName = displayProfile.username || "İsimsiz Kahraman";
+  const bio = displayProfile.title || "Henüz bir unvan eklenmemiş.";
+  const email = displayProfile.email || "";
+  const nickname = email ? `@${email.split("@")[0].toLowerCase()}` : `@${displayProfile.username || "odaklayici"}`;
+  const initial = displayName.charAt(0).toUpperCase();
+  const avatar = displayProfile.avatar;
+  const banner = displayProfile.banner;
+
+  const currentStreak = displayProfile.currentStreak || 0;
+  const bestStreak = displayProfile.bestStreak || 0;
+  const totalPomodoros = displayProfile.totalPomodoros || 0;
+  const totalHours = Number(displayProfile.totalWorkTime || 0).toFixed(1);
+  const calculatedLevel = displayProfile.level || 1;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 pb-12 font-sans">
       <div className="max-w-7xl mx-auto px-4">
+        {/* DİKKAT: Navbar'a kendi profilimizi (currentUser/profile) atıyoruz ki sağ üstte başkasının değil BİZİM resmimiz çıksın */}
         <Navbar profile={profile} notificationCount={requests.length} />
 
         <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-8 mt-8">
@@ -129,14 +157,16 @@ const Profile = ({ profile, requests = [], refresh }) => {
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white dark:to-[#1e293b]/20"></div>
               </div>
 
-              {/* Ayarlara Git Butonu */}
-              <button
-                onClick={() => (window.location.href = "/settings")}
-                className="absolute top-6 right-6 p-2.5 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md rounded-xl transition-all text-slate-600 dark:text-slate-300 z-20 shadow-sm hover:scale-110 hover:rotate-45 duration-300"
-                title="Profili Düzenle"
-              >
-                ⚙️
-              </button>
+              {/* Ayarlara Git Butonu SADECE BENİM PROFİLİMSE GÖZÜKSÜN */}
+              {isMyProfile && (
+                <button
+                  onClick={() => (window.location.href = "/settings")}
+                  className="absolute top-6 right-6 p-2.5 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md rounded-xl transition-all text-slate-600 dark:text-slate-300 z-20 shadow-sm hover:scale-110 hover:rotate-45 duration-300"
+                  title="Profili Düzenle"
+                >
+                  ⚙️
+                </button>
+              )}
 
               {/* Büyük Profil Avatarı */}
               <div className="relative z-10 w-32 h-32 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 p-1 shadow-lg shadow-indigo-500/30 mb-5 mt-10 group">
@@ -177,10 +207,7 @@ const Profile = ({ profile, requests = [], refresh }) => {
 
               {/* --- TAKİP İSTATİSTİKLERİ VE BUTON ALANI --- */}
               <div className="relative z-10 w-full flex flex-col items-center gap-5 mb-8">
-                {/* Rakamlar */}
                 <div className="flex items-center justify-center gap-8 text-sm w-full">
-                  
-                  {/* Takipçi Kısmı - Tıklanabilir */}
                   <div 
                     onClick={() => openModal("followers", "Takipçiler")}
                     className="flex flex-col items-center cursor-pointer group"
@@ -193,10 +220,8 @@ const Profile = ({ profile, requests = [], refresh }) => {
                     </span>
                   </div>
 
-                  {/* Ayraç */}
                   <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-300 dark:via-slate-600 to-transparent"></div>
 
-                  {/* Takip Edilen Kısmı - Tıklanabilir */}
                   <div 
                     onClick={() => openModal("following", "Takip Edilenler")}
                     className="flex flex-col items-center cursor-pointer group"
@@ -245,42 +270,44 @@ const Profile = ({ profile, requests = [], refresh }) => {
               </div>
             </div>
 
-            {/* Sosyal Etkileşim Paneli */}
-            <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800/50 shadow-xl">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
-                Sosyal Etkileşim
-              </h3>
-              <div className="space-y-3 mb-6">
-                {requests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl"
-                  >
-                    <span className="font-bold text-xs text-slate-700 dark:text-slate-200">
-                      @{req.senderName}
-                    </span>
-                    <button
-                      onClick={() => handleAction("accept", req.id)}
-                      className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors"
+            {/* SADECE KENDİ PROFİLİNDEYSE SOSYAL ETKİLEŞİM PANELİNİ GÖSTER */}
+            {isMyProfile && (
+              <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800/50 shadow-xl">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">
+                  Sosyal Etkileşim
+                </h3>
+                <div className="space-y-3 mb-6">
+                  {requests.map((req) => (
+                    <div
+                      key={req.id}
+                      className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl"
                     >
-                      ✓
-                    </button>
-                  </div>
-                ))}
-                {requests.length === 0 && (
-                  <p className="text-[10px] text-slate-400 text-center py-2 italic">
-                    İstek yok.
-                  </p>
-                )}
+                      <span className="font-bold text-xs text-slate-700 dark:text-slate-200">
+                        @{req.senderName}
+                      </span>
+                      <button
+                        onClick={() => handleAction("accept", req.id)}
+                        className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center hover:bg-emerald-600 transition-colors"
+                      >
+                        ✓
+                      </button>
+                    </div>
+                  ))}
+                  {requests.length === 0 && (
+                    <p className="text-[10px] text-slate-400 text-center py-2 italic">
+                      İstek yok.
+                    </p>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Arkadaş ara..."
+                  className="w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl py-3 px-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-              <input
-                type="text"
-                placeholder="Arkadaş ara..."
-                className="w-full bg-slate-100 dark:bg-slate-800/50 border-none rounded-xl py-3 px-4 text-xs outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white transition-all"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            )}
           </div>
 
           {/* SAĞ PANEL (İSTATİSTİKLER VEYA ARKADAŞLAR) */}
@@ -315,7 +342,7 @@ const Profile = ({ profile, requests = [], refresh }) => {
             ) : (
               <div className="bg-white dark:bg-[#1e293b]/40 backdrop-blur-xl rounded-[3rem] p-10 border border-slate-200 dark:border-slate-800 shadow-xl min-h-[500px]">
                 <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-8 tracking-tighter">
-                  Arkadaşlarım
+                  {isMyProfile ? "Arkadaşlarım" : "Takipçiler"}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {friends.map((friend) => (
@@ -338,7 +365,7 @@ const Profile = ({ profile, requests = [], refresh }) => {
                   ))}
                   {friends.length === 0 && (
                     <p className="col-span-full text-center text-slate-400 py-20 font-black italic">
-                      Henüz hiç arkadaşın yok.
+                      Bu liste henüz boş.
                     </p>
                   )}
                 </div>
@@ -354,9 +381,8 @@ const Profile = ({ profile, requests = [], refresh }) => {
         onClose={closeModal}
         type={modalData.type}
         title={modalData.title}
-        profileId={profile?.userId || profile?._id}
+        profileId={displayProfile?.userId || displayProfile?._id}
       />
-
     </div>
   );
 };

@@ -101,6 +101,24 @@ function App() {
               )
             }
           />
+          
+          {/* YENİ EKLENEN KISIM: Başkasının profiline gitmek için (ID alır) */}
+          <Route
+            path="/profile/:id"
+            element={
+              profile ? (
+                <Profile
+                  profile={profile}
+                  requests={notifications}
+                  refresh={refreshAppData}
+                />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          />
+
+          {/* MEVCUT KISIM: Kendi profiline gitmek için */}
           <Route
             path="/profile"
             element={
@@ -115,6 +133,7 @@ function App() {
               )
             }
           />
+          
           <Route
             path="/statistics"
             element={profile ? <Statistics /> : <Navigate to="/" />}
@@ -133,7 +152,6 @@ function App() {
   path="/room/:id" 
   element={profile ? <ActiveRoom profile={profile} /> : <Navigate to="/" />} 
 />
-
 <Route 
   path="/rooms" 
   element={profile ? <Rooms profile={profile} /> : <Navigate to="/" />} 
