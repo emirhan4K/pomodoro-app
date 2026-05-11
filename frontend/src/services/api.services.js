@@ -1,4 +1,4 @@
-import api from "./api"; // Senin halihazırda var olan o güzel dosyan!
+import api from "./api"; 
 
 export const AuthService = {
   login: (data) => api.post("/auth/login", data),
@@ -7,6 +7,7 @@ export const AuthService = {
 
 export const ProfileService = {
   getMe: () => api.get(`/profile/me?t=${new Date().getTime()}`),
+  searchUsers: (query) => api.get(`/profile/search?q=${query}`),  
 };
 
 export const TaskService = {

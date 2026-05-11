@@ -1,6 +1,6 @@
 class ProfileMapper {
   static toResponse(user, profileDoc) {
-    if (!profile) return null;
+    if (!!profileDoc) return null;
     return {
       id: user._id ? user._id.toString() : user.id,
       username: user?.username || user?.name,
@@ -18,18 +18,24 @@ class ProfileMapper {
       streak: profileDoc ? profileDoc.currentStreak : 0,
       bestStreak: profileDoc ? profileDoc.bestStreak : 0,
       lastSessionDate: profileDoc ? profileDoc.lastSessionDate : null,
+      social: {
+        followers: profileDoc.followers || [],
+        following: profileDoc.following || []
+      }
     };
   }
   static toBasicProfileDto(profile) {
     if (!profile) return null;
 
-    const userData = profile.user || {};
+    const userData = profile.user && typeof profile.user === 'object' ? profile.user : {};
 
     return {
       userId: userData._id || profile.user,
       username: userData.username || "Kullanıcı",
       avatar: profile.avatar || "default-avatar.png",
       title: profile.title || "",
+      followers: profile.followers || [],
+      following: profile.following || []
     };
   }
   static toBasicProfileListDto(profiles) {

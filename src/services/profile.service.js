@@ -2,8 +2,8 @@ const BadRequestException = require("../exceptions/BadRequestException");
 const UnauthorizedException = require("../exceptions/UnauthorizedException");
 const { hashPassword, comparePassword } = require("../utils/hash.utils");
 const ProfileMapper = require("../mappers/profile.mapper");
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 class ProfileService {
   constructor({ profileRepository, userRepository }) {
@@ -23,7 +23,7 @@ class ProfileService {
         totalWorkTime: 0,
         currentStreak: 0,
         bestStreak: 0,
-        lastSessionDate: null
+        lastSessionDate: null,
       });
     }
 
@@ -69,45 +69,53 @@ class ProfileService {
     return { xp, level };
   }
   async updateProfileInfo(userId, { name, title }) {
-    const updatedUser = await this.userRepository.model.findByIdAndUpdate(
-      userId,
-      { username: name, username: name }, 
-      { new: true }
-    ).select('-password');
+    const updatedUser = await this.userRepository.model
+      .findByIdAndUpdate(
+        userId,
+        { username: name, username: name },
+        { new: true },
+      )
+      .select("-password");
 
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
-      { user: userId }, 
+      { user: userId },
       { title: title },
-      { new: true }
+      { new: true },
     );
     return ProfileMapper.toResponse(updatedUser, updatedProfile);
   }
   async updateUserSettings(userId, settingsData) {
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
-      { $set: { settings: settingsData } }, 
-      { new: true }
+      { $set: { settings: settingsData } },
+      { new: true },
     );
-    const user = await this.userRepository.model.findById(userId).select('-password');
-    
+    const user = await this.userRepository.model
+      .findById(userId)
+      .select("-password");
+
     return ProfileMapper.toResponse(user, updatedProfile);
   }
-  async changePasswordSettings(userId,oldPassword,newPassword){
-    const user = await this.userRepository.findById(userId)
-    if(!user) throw new BadRequestException("Kullanıcı bulunamadı!")
-      
-    const isMatch = await comparePassword(oldPassword,user.password)
-    if(!isMatch) throw new UnauthorizedException("Mevcut şifreniz yanlış")
+  async changePasswordSettings(userId, oldPassword, newPassword) {
+    const user = await this.userRepository.findById(userId);
+    if (!user) throw new BadRequestException("Kullanıcı bulunamadı!");
+
+    const isMatch = await comparePassword(oldPassword, user.password);
+    if (!isMatch) throw new UnauthorizedException("Mevcut şifreniz yanlış");
 
     const hashedPassword = await hashPassword(newPassword);
     user.password = hashedPassword;
     await user.save();
-    return { message: 'Şifreniz başarıyla güncellendi.' };
+    return { message: "Şifreniz başarıyla güncellendi." };
   }
   async deleteAccount(userId) {
-    const deletedUser = await this.userRepository.model.findByIdAndDelete(userId);
-    if (!deletedUser) throw new BadRequestException('Kullanıcı bulunamadı veya zaten silinmiş.');
-    return { message: 'Hesabınız başarıyla silindi.' };
+    const deletedUser =
+      await this.userRepository.model.findByIdAndDelete(userId);
+    if (!deletedUser)
+      throw new BadRequestException(
+        "Kullanıcı bulunamadı veya zaten silinmiş.",
+      );
+    return { message: "Hesabınız başarıyla silindi." };
   }
   async updateAvatar(userId, fileUrl) {
     if (!fileUrl) {
@@ -116,27 +124,34 @@ class ProfileService {
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
       { avatar: fileUrl },
-      { returnDocument: 'after', upsert: true }
+      { returnDocument: "after", upsert: true },
     );
 
-    const user = await this.userRepository.model.findById(userId).select('-password');
+    const user = await this.userRepository.model
+      .findById(userId)
+      .select("-password");
     return ProfileMapper.toResponse(user, updatedProfile);
   }
   async updateBanner(userId, fileUrl) {
     if (!fileUrl) {
-      throw new BadRequestException("Lütfen geçerli bir arka plan dosyası seçin!");
+      throw new BadRequestException(
+        "Lütfen geçerli bir arka plan dosyası seçin!",
+      );
     }
     const updatedProfile = await this.profileRepository.model.findOneAndUpdate(
       { user: userId },
       { banner: fileUrl },
-      { returnDocument: 'after', upsert: true }
+      { returnDocument: "after", upsert: true },
     );
 
-    const user = await this.userRepository.model.findById(userId).select('-password');
+    const user = await this.userRepository.model
+      .findById(userId)
+      .select("-password");
     return ProfileMapper.toResponse(user, updatedProfile);
   }
   async searchUsers(keyword) {
-    const rawProfiles = await this.profileRepository.searchProfilesByUsername(keyword);
+    const rawProfiles =
+      await this.profileRepository.searchProfilesByUsername(keyword);
     return ProfileMapper.toBasicProfileListDto(rawProfiles);
   }
 }

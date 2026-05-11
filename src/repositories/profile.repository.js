@@ -89,19 +89,30 @@ class ProfileRepository extends BaseRepository {
   }
   async searchProfilesByUsername(keyword) {
     if (!keyword) return [];
-    // 1.Önce içinde o kelime geçen kullanıcıları bul 
-    const matchingUsers = await User.find({
-      username: { $regex: keyword, $options: "i" }
-    }).select("_id");
-    const userIds = matchingUsers.map(user => user._id);
-    // 2.Bu kullanıcıların profillerini getir ve populate et
-    const profiles = await Profile.find({ user: { $in: userIds } })
-      .populate({
-        path: "user",
-        select: "username" // Sadece username lazım
-      });
 
-    return profiles;
+    // Awilix ve Mimari dostu arama: $lookup ile User tablosuna bağlanıyoruz
+    return await this.model.aggregate([
+      {
+        $lookup: {
+          from: "users", // MongoDB'deki collection adı (genelde küçük harf ve çoğul)
+          localField: "user",
+          foreignField: "_id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" }, // Array'i objeye çevir
+      {
+        $match: {
+          "user.username": { $regex: keyword, $options: "i" }
+        }
+      },
+      {
+        $project: {
+          "user.password": 0, // Güvenlik için şifreyi çıkar
+          "user.email": 0
+        }
+      }
+    ]);
   }
 }
 
