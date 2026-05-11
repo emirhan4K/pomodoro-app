@@ -32,7 +32,7 @@ module.exports = (io, socket) => {
     socket.to(roomId).emit("user_typing", { username, isTyping });
   };
 
-  // Görüldü (Seen)
+  // Görüldü (Sen)
   const handleMessageSeen = async ({ roomId, messageId, userId }) => {
     try {
       await messageService.markAsSeen(messageId, userId);

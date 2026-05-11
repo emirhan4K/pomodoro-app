@@ -1,13 +1,49 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import api from "../services/api";
+import api from "../services/api"; 
+import { useAuth } from "../context/AuthContext"; 
+import { FollowService } from "../services/api.services"; 
+import FollowModal from "../components/FollowModal"; // Modal Importu
 
 const Profile = ({ profile, requests = [], refresh }) => {
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get("tab") || "stats";
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState([]);
+
+  // Giriş yapmış kullanıcıyı useAuth'tan alıyoruz
+  const { profile: currentUser } = useAuth(); 
+
+  // --- TAKİP SİSTEMİ STATE'LERİ ---
+  const [isFollowing, setIsFollowing] = useState(profile?.isFollowing || false);
+  const [followersCount, setFollowersCount] = useState(profile?.social?.followersCount || 0);
+  const [followingCount, setFollowingCount] = useState(profile?.social?.followingCount || 0);
+  const [modalData, setModalData] = useState({isOpen: false, type: "", title: "", });
+
+  const openModal = (type, title) => {
+    setModalData({ isOpen: true, type, title });
+  };
+
+  const closeModal = () => {
+    setModalData({ isOpen: false, type: "", title: "" });
+  };
+
+  // Profilin sana ait olup olmadığını kontrol et
+  const myId = currentUser?.userId || currentUser?.id || currentUser?._id;
+  const viewedId = profile?.userId || profile?.id || profile?._id;
+  const isMyProfile = String(myId) === String(viewedId);
+
+  useEffect(() => {
+    // console.log için boş bırakmıştın, burayı silebilirsin veya log atabilirsin.
+  }, [myId, viewedId, isMyProfile]);
+
+  // Profil datası güncellendiğinde stateleri senkronize et
+  useEffect(() => {
+    setFollowersCount(profile?.social?.followersCount || 0);
+    setFollowingCount(profile?.social?.followingCount || 0);
+    setIsFollowing(profile?.isFollowing || false);
+  }, [profile]);
 
   // --- PROFİL BİLGİLERİ MANTIĞI ---
   const displayName = profile?.username || "İsimsiz Kahraman";
@@ -20,7 +56,7 @@ const Profile = ({ profile, requests = [], refresh }) => {
 
   const initial = displayName.charAt(0).toUpperCase();
   const avatar = profile?.avatar;
-  const banner = profile?.banner; // Banner bilgisini aldık
+  const banner = profile?.banner;
 
   const currentStreak = profile?.currentStreak || 0;
   const bestStreak = profile?.bestStreak || 0;
@@ -48,6 +84,24 @@ const Profile = ({ profile, requests = [], refresh }) => {
     }
   };
 
+  // --- TAKİP ET / TAKİPTEN ÇIK AKSİYONU ---
+  const handleFollowToggle = async () => {
+    try {
+      const targetId = profile?.userId || profile?._id;
+      if (isFollowing) {
+        await FollowService.unfollow(targetId);
+        setIsFollowing(false);
+        setFollowersCount((prev) => prev - 1);
+      } else {
+        await FollowService.follow(targetId);
+        setIsFollowing(true);
+        setFollowersCount((prev) => prev + 1);
+      }
+    } catch (error) {
+      console.error("Takip işlemi başarısız:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] transition-colors duration-500 pb-12 font-sans">
       <div className="max-w-7xl mx-auto px-4">
@@ -72,7 +126,6 @@ const Profile = ({ profile, requests = [], refresh }) => {
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-indigo-500/30 to-purple-500/30 backdrop-blur-sm"></div>
                 )}
-                {/* Alt kısımla yumuşak geçiş için gölge */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white dark:to-[#1e293b]/20"></div>
               </div>
 
@@ -90,7 +143,11 @@ const Profile = ({ profile, requests = [], refresh }) => {
                 <div className="w-full h-full bg-white dark:bg-[#0f172a] rounded-full flex items-center justify-center border-4 border-white dark:border-[#1e293b] transition-transform group-hover:scale-95 duration-300 overflow-hidden">
                   {avatar && avatar !== "default-avatar.png" ? (
                     <img
-                      src={avatar?.startsWith('http') ? avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${avatar}`}
+                      src={
+                        avatar?.startsWith("http")
+                          ? avatar
+                          : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${avatar}`
+                      }
                       alt="Profil Avatarı"
                       className="w-full h-full object-cover"
                     />
@@ -116,6 +173,65 @@ const Profile = ({ profile, requests = [], refresh }) => {
                 <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                   {bio}
                 </p>
+              </div>
+
+              {/* --- TAKİP İSTATİSTİKLERİ VE BUTON ALANI --- */}
+              <div className="relative z-10 w-full flex flex-col items-center gap-5 mb-8">
+                {/* Rakamlar */}
+                <div className="flex items-center justify-center gap-8 text-sm w-full">
+                  
+                  {/* Takipçi Kısmı - Tıklanabilir */}
+                  <div 
+                    onClick={() => openModal("followers", "Takipçiler")}
+                    className="flex flex-col items-center cursor-pointer group"
+                  >
+                    <span className="text-2xl font-black text-slate-800 dark:text-white group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors duration-300">
+                      {followersCount}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">
+                      Takipçi
+                    </span>
+                  </div>
+
+                  {/* Ayraç */}
+                  <div className="w-px h-10 bg-gradient-to-b from-transparent via-slate-300 dark:via-slate-600 to-transparent"></div>
+
+                  {/* Takip Edilen Kısmı - Tıklanabilir */}
+                  <div 
+                    onClick={() => openModal("following", "Takip Edilenler")}
+                    className="flex flex-col items-center cursor-pointer group"
+                  >
+                    <span className="text-2xl font-black text-slate-800 dark:text-white group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors duration-300">
+                      {followingCount}
+                    </span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest mt-1">
+                      Takip Edilen
+                    </span>
+                  </div>
+                </div>
+
+                {/* Aksiyon Butonu */}
+                {isMyProfile ? (
+                  <button
+                    onClick={() => (window.location.href = "/settings")}
+                    className="w-[80%] relative overflow-hidden py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-95 bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50"
+                  >
+                    Profili Düzenle
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleFollowToggle}
+                    className={`w-[80%] relative overflow-hidden py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-95 ${
+                      isFollowing
+                        ? "bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 dark:hover:text-red-400 hover:border-red-300 dark:hover:border-red-500/50"
+                        : "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50"
+                    }`}
+                  >
+                    <span className="relative z-10">
+                      {isFollowing ? "Takipten Çık" : "Takip Et"}
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* Level Rozeti */}
@@ -231,6 +347,16 @@ const Profile = ({ profile, requests = [], refresh }) => {
           </div>
         </div>
       </div>
+
+      {/* --- MODAL BURADA ÇAĞRILIYOR --- */}
+      <FollowModal
+        isOpen={modalData.isOpen}
+        onClose={closeModal}
+        type={modalData.type}
+        title={modalData.title}
+        profileId={profile?.userId || profile?._id}
+      />
+
     </div>
   );
 };

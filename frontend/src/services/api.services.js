@@ -16,6 +16,13 @@ export const TaskService = {
   deleteTask: (id) => api.delete(`/tasks/${id}`),
 };
 
+export const FollowService = {
+  follow: (targetId) => api.post(`/users/${targetId}/follow`),
+  unfollow: (targetId) => api.post(`/users/${targetId}/unfollow`),
+  getFollowers: (targetId) => api.get(`/users/${targetId}/followers`),
+  getFollowing: (targetId) => api.get(`/users/${targetId}/following`),
+};
+
 export const PomodoroService = {
   startSession: (duration, category) =>
     api.post("/pomodoros", { duration, category }),
@@ -31,13 +38,13 @@ export const RoomService = {
     return response.data;
   },
   getRoomMessages: async (roomId) => {
-  try {
-    const response = await api.get(`/rooms/${roomId}/messages`); 
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-},
+    try {
+      const response = await api.get(`/rooms/${roomId}/messages`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
   createRoom: async (data) => (await api.post("/rooms", data)).data,
   joinRoom: async (id, password) =>
     (await api.post(`/rooms/${id}/join`, { password })).data,

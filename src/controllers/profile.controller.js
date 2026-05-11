@@ -2,7 +2,6 @@ class ProfileController {
   constructor({ profileService }) {
     this.profileService = profileService;
   } 
-
   getProfile = async (req, res, next) => {
     try {
       const userId = req.user.id;
@@ -80,6 +79,5 @@ class ProfileController {
       next(error);
     }
   }
-  
 }
 module.exports = ProfileController;

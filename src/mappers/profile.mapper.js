@@ -1,5 +1,6 @@
 class ProfileMapper {
   static toResponse(user, profileDoc) {
+    if (!profile) return null;
     return {
       id: user._id ? user._id.toString() : user.id,
       username: user?.username || user?.name,
@@ -18,6 +19,22 @@ class ProfileMapper {
       bestStreak: profileDoc ? profileDoc.bestStreak : 0,
       lastSessionDate: profileDoc ? profileDoc.lastSessionDate : null,
     };
+  }
+  static toBasicProfileDto(profile) {
+    if (!profile) return null;
+
+    const userData = profile.user || {};
+
+    return {
+      userId: userData._id || profile.user,
+      username: userData.username || "Kullanıcı",
+      avatar: profile.avatar || "default-avatar.png",
+      title: profile.title || "",
+    };
+  }
+  static toBasicProfileListDto(profiles) {
+    if (!profiles || !Array.isArray(profiles)) return [];
+    return profiles.map((profile) => this.toBasicProfileDto(profile));
   }
 }
 

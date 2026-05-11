@@ -32,11 +32,60 @@ class ProfileRepository extends BaseRepository {
       { new: true, upsert: true },
     );
   }
-
   async findByUserId(userId) {
     const id = userId?.user || userId?.id || userId;
     if (!id) return null;
     return await this.model.findOne({ user: id });
+  }
+  async followUser(currentUserId, targetUserId) {
+    const [updatedCurrentUser, updatedTargetUser] = await Promise.all([
+      // 1. Senin 'following' listene onu ekle
+      Profile.findOneAndUpdate(
+        { user: currentUserId },
+        { $addToSet: { following: targetUserId } },
+        { new: true },
+      ),
+      // 2. Onun 'followers' listesine seni ekle
+      Profile.findOneAndUpdate(
+        { user: targetUserId },
+        { $addToSet: { followers: currentUserId } },
+        { new: true },
+      ),
+    ]);
+
+    return updatedCurrentUser;
+  }
+  async unfollowUser(currentUserId, targetUserId) {
+    const [updatedCurrentUser, updatedTargetUser] = await Promise.all([
+      // 1. Senin 'following' listenden onu çıkar
+      Profile.findOneAndUpdate(
+        { user: currentUserId },
+        { $pull: { following: targetUserId } },
+        { new: true },
+      ),
+      // 2. Onun 'followers' listesinden seni çıkar
+      Profile.findOneAndUpdate(
+        { user: targetUserId },
+        { $pull: { followers: currentUserId } },
+        { new: true },
+      ),
+    ]);
+
+    return updatedCurrentUser;
+  }
+  async getFollowersList(userId) {
+    const profile = await this.Profile.findOne({ user: userId }).populate({
+      path: "followers",
+      select: "username avatar title",
+    });
+    return profile ? profile.followers : [];
+  }
+  async getFollowingList(userId) {
+    const profile = await this.Profile.findOne({ user: userId }).populate({
+      path: "following",
+      select: "username avatar title",
+    });
+    return profile ? profile.following : [];
   }
 }
 

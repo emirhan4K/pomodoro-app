@@ -48,6 +48,14 @@ const profileSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+  followers: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User" 
+  }],
+  following: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User" 
+  }],
   settings: {
     focusTime: { type: Number, default: 25 },
     shortBreak: { type: Number, default: 5 },
