@@ -42,8 +42,7 @@ module.exports = (io, socket) => {
     }
   };
 
-  // MESAJIN DB'YE YAZILDIĞI VE ÇÖZÜLEN YER
-  const sendChatMessage = async (data) => {
+ const sendChatMessage = async (data) => {
     try {
       const { roomId, message, user } = data;
       const newMessage = await messageService.saveMessage(roomId, user, message);
@@ -55,7 +54,8 @@ module.exports = (io, socket) => {
         createdAt: newMessage.createdAt,
         user: { 
           _id: newMessage.user, 
-          avatar: user.avatar 
+          username: newMessage.username,
+          avatar: user.avatar || "default-avatar.png" 
         }
       });
       
