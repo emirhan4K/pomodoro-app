@@ -81,7 +81,15 @@ const ActiveRoom = ({ profile }) => {
               String(m._id || m.id) ===
               String(profileRef.current._id || profileRef.current.id),
           );
-          if (!amIHere) data.members = [...data.members, profileRef.current];
+          if (!amIHere) {
+        // BURAYI GÜNCELLE: Kendi profilimizi eklerken avatarı da ekliyoruz
+        const myFullData = {
+          ...profileRef.current,
+          // Eğer profil bilgisinde avatar varsa onu al, yoksa varsayılanı koy
+          avatar: profileRef.current.avatar || profileRef.current.profile?.avatar || "default-avatar.png"
+        };
+        data.members = [...data.members, myFullData];
+      }
         }
 
         setRoomData(data);
