@@ -90,7 +90,11 @@ const Profile = ({ profile, requests = [], refresh }) => {
 
   const handleFollowToggle = async () => {
     try {
-      const targetId = displayProfile?.userId || displayProfile?._id;
+      const targetId = displayProfile?.id || displayProfile?.userId || displayProfile?._id;
+      if (!targetId) {
+         console.error("HATA: Takip edilecek adamın ID'si bulunamadı!");
+         return;
+      }
       if (isFollowing) {
         await FollowService.unfollow(targetId);
         setIsFollowing(false);
@@ -381,7 +385,7 @@ const Profile = ({ profile, requests = [], refresh }) => {
         onClose={closeModal}
         type={modalData.type}
         title={modalData.title}
-        profileId={displayProfile?.userId || displayProfile?._id}
+       profileId={displayProfile?.id || displayProfile?.userId || displayProfile?._id}
       />
     </div>
   );
