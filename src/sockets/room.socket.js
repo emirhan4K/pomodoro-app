@@ -46,7 +46,6 @@ module.exports = (io, socket) => {
   const sendChatMessage = async (data) => {
     try {
       const { roomId, message, user } = data;
-      
       const newMessage = await messageService.saveMessage(roomId, user, message);
       
       io.to(roomId).emit("new_message", {
@@ -54,7 +53,10 @@ module.exports = (io, socket) => {
         text: newMessage.text,
         username: newMessage.username,
         createdAt: newMessage.createdAt,
-        user: newMessage.user 
+        user: { 
+          _id: newMessage.user, 
+          avatar: user.avatar 
+        }
       });
       
     } catch (error) {

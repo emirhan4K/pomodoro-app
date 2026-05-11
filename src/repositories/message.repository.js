@@ -5,7 +5,7 @@ class MessageRepository extends BaseRepository {
   constructor() { super(Message); }
 
   async findByRoomId(roomId, limit = 50) {
-    return await Message.find({ room: roomId }).sort({ createdAt: 1 }).limit(limit);
+    return await Message.find({ room: roomId }).populate("user", "username avatar").sort({ createdAt: 1 }).limit(limit);
   }
 
   async addSeenUser(messageId, userId) {

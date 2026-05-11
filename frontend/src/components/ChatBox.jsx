@@ -53,11 +53,20 @@ const ChatBox = ({ messages, currentUser, onSendMessage, onTyping, typingUsers }
             return (
               <div key={index} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-fade-in-up`}>
                 <div className="flex items-baseline gap-2 mb-1 px-1">
-                  <span className={`text-[9px] font-black uppercase tracking-tighter ${isMe ? 'text-indigo-400' : 'text-emerald-400'}`}>
-                    {isMe ? 'SEN' : msg.username}
-                  </span>
-                  <span className="text-[8px] text-slate-500 font-bold">{formatTime(msg.createdAt)}</span>
-                </div>
+  {/* RESİM KISMI BURAYA EKLENDİ */}
+  {msg.user?.avatar ? (
+    <img src={msg.user.avatar} className="w-4 h-4 rounded-full object-cover border border-slate-700/50" alt="avatar" />
+  ) : (
+    <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[7px] font-black text-slate-400 border border-slate-700/50">
+      {(msg.username || "U").charAt(0).toUpperCase()}
+    </div>
+  )}
+  {/* İSİM VE SAAT KISMI */}
+  <span className={`text-[9px] font-black uppercase tracking-tighter ${isMe ? 'text-indigo-400' : 'text-emerald-400'}`}>
+    {isMe ? 'SEN' : msg.username}
+  </span>
+  <span className="text-[8px] text-slate-500 font-bold">{formatTime(msg.createdAt)}</span>
+</div>
                 <div className={`px-3 py-2 rounded-xl max-w-[85%] border shadow-sm ${
                   isMe 
                   ? 'bg-indigo-600/10 border-indigo-500/20 text-indigo-100 rounded-tr-sm' 

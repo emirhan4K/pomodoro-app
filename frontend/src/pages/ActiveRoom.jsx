@@ -442,13 +442,23 @@ const ActiveRoom = ({ profile }) => {
             <div className="space-y-5">
               {roomData.members?.map((m, i) => (
                 <div
-                  key={i}
-                  className="flex items-center gap-3 group animate-fade-in-up"
-                >
-                  <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-black group-hover:border-indigo-500 transition-colors">
-                    {(m.username || "U").charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex flex-col">
+  key={i}
+  className="flex items-center gap-3 group animate-fade-in-up"
+>
+  {/* RESİM KISMI BURAYA EKLENDİ */}
+  {m.avatar ? (
+    <img 
+      src={m.avatar} 
+      alt="avatar" 
+      className="w-9 h-9 rounded-xl object-cover border border-slate-700 group-hover:border-indigo-500 transition-colors shadow-lg" 
+    />
+  ) : (
+    <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-black group-hover:border-indigo-500 transition-colors shadow-lg">
+      {(m.username || "U").charAt(0).toUpperCase()}
+    </div>
+  )}
+  
+  <div className="flex flex-col">
                     <span className="text-sm font-black text-slate-200 uppercase tracking-tighter">
                       @{m.username || "Kullanıcı"}
                       {String(m._id || m.id) ===
