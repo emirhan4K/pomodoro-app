@@ -69,27 +69,30 @@ const ActiveRoom = ({ profile }) => {
   const strokeDashoffset = circumference - progress * circumference;
 
   // 1. Odayı ve Geçmiş Mesajları API'den Çekme
-  useEffect(() => {
+ useEffect(() => {
     const fetchRoomDetails = async () => {
       try {
         const response = await RoomService.getRoomBySlug(roomSlug);
         let data = response?.room || response?.data || response;
 
+        // ÇÖZÜM: Kendimizi listeye ekliyoruz veya backend eksik yolladıysa resmi zorla güncelliyoruz
         if (profileRef.current && data.members) {
-          const amIHere = data.members.some(
-            (m) =>
-              String(m._id || m.id) ===
-              String(profileRef.current._id || profileRef.current.id),
+          const myAvatar = profileRef.current.avatar || profileRef.current.profile?.avatar || "default-avatar.png";
+          
+          const myIndex = data.members.findIndex(
+            (m) => String(m._id || m.id) === String(profileRef.current._id || profileRef.current.id)
           );
-          if (!amIHere) {
-        // BURAYI GÜNCELLE: Kendi profilimizi eklerken avatarı da ekliyoruz
-        const myFullData = {
-          ...profileRef.current,
-          // Eğer profil bilgisinde avatar varsa onu al, yoksa varsayılanı koy
-          avatar: profileRef.current.avatar || profileRef.current.profile?.avatar || "default-avatar.png"
-        };
-        data.members = [...data.members, myFullData];
-      }
+
+          if (myIndex === -1) {
+            // 1. DURUM: Listede yoksak, resmimizle birlikte ekleniyoruz
+            data.members = [...data.members, { ...profileRef.current, avatar: myAvatar }];
+          } else {
+            // 2. DURUM: Listede varsak (odayı yeni kurduğumuz senaryo), resmi zorla yapıştırıyoruz
+            data.members[myIndex] = { 
+              ...data.members[myIndex], 
+              avatar: myAvatar || data.members[myIndex].avatar 
+            };
+          }
         }
 
         setRoomData(data);
@@ -112,6 +115,7 @@ const ActiveRoom = ({ profile }) => {
         setIsLoading(false);
       }
     };
+
     if (roomSlug) fetchRoomDetails();
 
     return () => {
