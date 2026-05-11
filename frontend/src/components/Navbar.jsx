@@ -1,15 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ProfileService } from '../services/api.services';
 
 const Navbar = ({ notificationCount = 0 }) => {
   const navigate = useNavigate();
-  
-  // İŞTE BÜTÜN SORUNU ÇÖZEN KELİME: 'user' DEĞİL 'profile' OLACAKTI!
-  const { profile, logout } = useAuth(); 
+  const { profile, logout } = useAuth();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
+
+  // --- ARAMA MOTORU STATELERİ (Yeni Tasarım İçin Güncellendi) ---
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // Arama kutusunun açık/kapalı durumu
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const searchContainerRef = useRef(null); // Tüm arama yapısını içeren referans
+  const searchInputRef = useRef(null); // Sadece input alanını içeren referans
+
+  // Arama menüsü dışarı tıklandığında kapansın
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Eğer tıklama arama konteyneri dışındaysa ve dropdown tetikleyici butonu değilse kapat
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target) && !event.target.closest('.search-trigger-btn')) {
+        setIsSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Arama butonu tıklandığında inputa odaklan
+  useEffect(() => {
+    if (isSearchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearchOpen]);
+
+  // Backend'i yormadan (Debounce ile) Arama İşlemi
+  useEffect(() => {
+    if (!isSearchOpen) {
+      setResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      if (searchTerm.trim().length >= 2) {
+        setLoading(true);
+        try {
+          const res = await ProfileService.searchUsers(searchTerm);
+          setResults(res.data?.data || []);
+        } catch (err) {
+          console.error("Arama hatası:", err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, isSearchOpen]);
 
   const toggleDarkMode = () => {
     const isDark = document.documentElement.classList.toggle('dark');
@@ -22,22 +74,94 @@ const Navbar = ({ notificationCount = 0 }) => {
     navigate('/'); 
   };
 
-  // Açılır menü için XP Hesaplamaları (Artık 'profile' üzerinden çekiyoruz)
+  // XP Hesaplamaları
   const userLevel = profile?.level || 1;
   const currentXp = profile?.xp || 0;
   const requiredXp = Math.floor(userLevel * 100 * 1.5);
   const progressPercentage = Math.min((currentXp / requiredXp) * 100, 100);
 
   return (
-    <nav className="bg-white dark:bg-[#1e293b]/60 backdrop-blur-md px-8 py-4 flex justify-between items-center rounded-b-[2rem] border-b border-slate-100 dark:border-slate-800 shadow-lg relative z-[100]">
-      {/* Sol Taraf - Logo */}
+    <nav className="bg-white dark:bg-[#1e293b]/60 backdrop-blur-md px-4 md:px-8 py-4 flex justify-between items-center rounded-b-[2rem] border-b border-slate-100 dark:border-slate-800 shadow-lg relative z-[100]">
+      
+      {/* 1. SOL TARAF - Logo */}
       <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
         <div className="w-10 h-10 bg-gradient-to-tr from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg hover:rotate-12 transition-transform">P</div>
-        <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter">Odaklan.</h1>
+        <h1 className="text-xl font-black text-slate-800 dark:text-white tracking-tighter hidden sm:block">Odaklan.</h1>
       </div>
-      
-      {/* Sağ Taraf - Aksiyonlar */}
-      <div className="flex items-center gap-4">
+
+      {/* 2. ORTA/SAĞ TARAF - Arama Motoru ve Aksiyonlar */}
+      <div className="flex items-center gap-2 relative">
+        
+        {/* --- DİNAMİK ARAMA MOTORU KONTEYNERİ --- */}
+        <div ref={searchContainerRef} className={`absolute top-0 right-12 transition-all duration-300 ease-out ${isSearchOpen ? 'w-80 opacity-100' : 'w-0 opacity-0 pointer-events-none'}`}>
+          <div className="relative group">
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Arkadaşlarını ara..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-100 dark:bg-[#0f172a]/50 border border-transparent focus:border-indigo-500/50 rounded-2xl py-2.5 pl-4 pr-11 text-sm outline-none text-slate-700 dark:text-white transition-all backdrop-blur-md focus:ring-4 focus:ring-indigo-500/10 shadow-inner placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            />
+            {loading ? (
+              <div className="absolute inset-y-0 right-4 flex items-center">
+                <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                <span className="text-slate-400">🔍</span>
+              </div>
+            )}
+          </div>
+
+          {/* Arama Sonuçları Dropdown (Glassmorphism) */}
+          {isSearchOpen && searchTerm.trim().length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-3 bg-white/95 dark:bg-[#0f172a]/95 border border-slate-200 dark:border-slate-700/50 rounded-[1.5rem] shadow-2xl overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-300 z-[110]">
+              <div className="p-2 max-h-[350px] overflow-y-auto scrollbar-hide">
+                {results.length > 0 ? (
+                  results.map((user) => (
+                    <div
+                      key={user.userId}
+                      onClick={() => {
+                        navigate(`/profile/${user.userId}`);
+                        setIsSearchOpen(false);
+                        setSearchTerm("");
+                      }}
+                      className="flex items-center gap-3 p-3 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-xl cursor-pointer transition-all group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden border border-slate-200 dark:border-slate-600 group-hover:border-indigo-500/50 transition-all flex-shrink-0">
+                        {user.avatar && user.avatar !== "default-avatar.png" ? (
+                          <img src={user.avatar.startsWith('http') ? user.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${user.avatar}`} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center font-bold text-slate-500">
+                            {user.username[0].toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-sm font-bold text-slate-800 dark:text-white group-hover:text-indigo-500 transition-colors truncate">@{user.username}</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider truncate">{user.title || "Odaklayıcı"}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 italic">Sonuç bulunamadı 😕</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* --- ARAMA TETİKLEYİCİ BUTON --- */}
+        <button 
+          onClick={() => setIsSearchOpen(!isSearchOpen)} 
+          className={`search-trigger-btn p-2.5 rounded-xl text-slate-500 transition-all border border-transparent shadow-sm ${isSearchOpen ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700' : 'bg-slate-100 dark:bg-slate-800 hover:text-indigo-600 dark:hover:text-amber-400 hover:border-slate-300 dark:hover:border-slate-700'}`}
+        >
+          🔍
+        </button>
+
         {/* Dark Mode Butonu */}
         <button onClick={toggleDarkMode} className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-500 hover:text-indigo-600 dark:hover:text-amber-400 transition-all border border-transparent hover:border-slate-300 dark:hover:border-slate-700 shadow-sm">
           {isDarkMode ? '🌞' : '🌙'}
@@ -74,7 +198,7 @@ const Navbar = ({ notificationCount = 0 }) => {
           {isDropdownOpen && (
             <div className="absolute top-14 right-0 w-80 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top-right">
               
-              {/* --- YENİ NESİL HEADER: BANNER VE AVATAR --- */}
+              {/* --- HEADER: BANNER VE AVATAR --- */}
               <div className="relative h-32 w-full overflow-hidden">
                 {/* Arka Plan Banner */}
                 {profile?.banner && profile.banner !== 'default-banner.png' ? (

@@ -7,7 +7,7 @@ export const AuthService = {
 
 export const ProfileService = {
   getMe: () => api.get(`/profile/me?t=${new Date().getTime()}`),
-  searchUsers: (query) => api.get(`/profile/search?q=${query}`),  
+  searchUsers: (query) => api.get(`/profile/search?q=${query}`), 
 };
 
 export const TaskService = {
