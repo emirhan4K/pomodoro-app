@@ -87,6 +87,22 @@ class ProfileRepository extends BaseRepository {
     });
     return profile ? profile.following : [];
   }
+  async searchProfilesByUsername(keyword) {
+    if (!keyword) return [];
+    // 1.Önce içinde o kelime geçen kullanıcıları bul 
+    const matchingUsers = await User.find({
+      username: { $regex: keyword, $options: "i" }
+    }).select("_id");
+    const userIds = matchingUsers.map(user => user._id);
+    // 2.Bu kullanıcıların profillerini getir ve populate et
+    const profiles = await Profile.find({ user: { $in: userIds } })
+      .populate({
+        path: "user",
+        select: "username" // Sadece username lazım
+      });
+
+    return profiles;
+  }
 }
 
 module.exports = ProfileRepository;

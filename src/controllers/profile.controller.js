@@ -79,5 +79,20 @@ class ProfileController {
       next(error);
     }
   }
+  searchUsers = async (req, res, next) => {
+    try {
+      const { q } = req.query; 
+      
+      if (!q) {
+        return res.status(200).json({ success: true, data: [] });
+      }
+
+      const results = await this.profileService.searchUsers(q);
+      
+      res.status(200).json({ success: true, data: results });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 module.exports = ProfileController;

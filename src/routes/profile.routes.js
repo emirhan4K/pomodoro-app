@@ -8,7 +8,7 @@ const { updateInfoSchema, updateSettingsSchema, changePasswordSchema} = require(
 const authMiddleware = require('../middlewares/auth.middleware');
 router.use(authMiddleware);
 
-
+router.get("/search", profileController.searchUsers);
 router.get("/me",  profileController.getProfile);
 router.get("/:userId", profileController.getPublicProfile);
 router.put("/update-info",profileController.updateProfileInfo);

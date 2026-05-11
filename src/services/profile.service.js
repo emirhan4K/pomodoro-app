@@ -135,6 +135,10 @@ class ProfileService {
     const user = await this.userRepository.model.findById(userId).select('-password');
     return ProfileMapper.toResponse(user, updatedProfile);
   }
+  async searchUsers(keyword) {
+    const rawProfiles = await this.profileRepository.searchProfilesByUsername(keyword);
+    return ProfileMapper.toBasicProfileListDto(rawProfiles);
+  }
 }
 
 module.exports = ProfileService;
