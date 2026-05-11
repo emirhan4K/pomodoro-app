@@ -51,23 +51,31 @@ const Profile = ({ profile, requests = [], refresh }) => {
     fetchProfileData();
   }, [id, profile]);
 
-  // Profil datası güncellendiğinde stateleri senkronize et
-  useEffect(() => {
-    if (displayProfile) {
-      // social dizisi mi yoksa sayısı mı geliyor kontrol ediyoruz
-      const followers = displayProfile.social?.followers?.length ?? displayProfile.social?.followersCount ?? 0;
-      const following = displayProfile.social?.following?.length ?? displayProfile.social?.followingCount ?? 0;
-      
-      setFollowersCount(followers);
-      setFollowingCount(following);
-      setIsFollowing(displayProfile.isFollowing || false);
-    }
-  }, [displayProfile]);
-
-  // Profilin sana ait olup olmadığını kontrol et
-  const myId = currentUser?.userId || currentUser?.id || currentUser?._id;
+ const myId = currentUser?.userId || currentUser?.id || currentUser?._id;
   const viewedId = displayProfile?.userId || displayProfile?.id || displayProfile?._id;
   const isMyProfile = String(myId) === String(viewedId);
+
+  // 2. Profil datası güncellendiğinde stateleri senkronize et
+  useEffect(() => {
+    if (displayProfile) {
+      // Güvenli dizi kontrolleri
+      const followersArray = displayProfile.social?.followers || [];
+      const followingArray = displayProfile.social?.following || [];
+      
+      // Rakamları güncelle (Dizi boşsa sayıyı kontrol et)
+      setFollowersCount(followersArray.length || displayProfile.social?.followersCount || 0);
+      setFollowingCount(followingArray.length || displayProfile.social?.followingCount || 0);
+
+      // F5 HATASINI KÖKTEN ÇÖZEN YER: Takipçiler arasında benim ID'm var mı?
+      const amIFollowing = followersArray.some(follower => {
+        // Takipçi bazen sadece ID (string), bazen de obje ({_id: "..."}) olarak gelebilir
+        const followerId = typeof follower === 'object' ? (follower._id || follower.id || follower.userId) : follower;
+        return String(followerId) === String(myId);
+      });
+      
+      setIsFollowing(displayProfile.isFollowing ?? amIFollowing);
+    }
+  }, [displayProfile, myId]);
 
   // Arkadaş listesini çek
   useEffect(() => {

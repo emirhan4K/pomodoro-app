@@ -74,44 +74,44 @@ class ProfileRepository extends BaseRepository {
     return updatedCurrentUser;
   }
   async getFollowersList(userId) {
-    const profile = await this.Profile.findOne({ user: userId }).populate({
-      path: "followers",
-      select: "username avatar title",
-    });
-    return profile ? profile.followers : [];
+    const profile = await this.model.findOne({ user: userId });
+    if (!profile || !profile.followers || profile.followers.length === 0)
+      return [];
+    return await this.model
+      .find({ user: { $in: profile.followers } })
+      .populate("user");
   }
   async getFollowingList(userId) {
-    const profile = await this.Profile.findOne({ user: userId }).populate({
-      path: "following",
-      select: "username avatar title",
-    });
-    return profile ? profile.following : [];
+    const profile = await this.model.findOne({ user: userId });
+    if (!profile || !profile.following || profile.following.length === 0)
+      return [];
+    return await this.model
+      .find({ user: { $in: profile.following } })
+      .populate("user");
   }
   async searchProfilesByUsername(keyword) {
     if (!keyword) return [];
-
-    // Awilix ve Mimari dostu arama: $lookup ile User tablosuna bağlanıyoruz
     return await this.model.aggregate([
       {
         $lookup: {
-          from: "users", // MongoDB'deki collection adı (genelde küçük harf ve çoğul)
+          from: "users",
           localField: "user",
           foreignField: "_id",
-          as: "user"
-        }
+          as: "user",
+        },
       },
-      { $unwind: "$user" }, // Array'i objeye çevir
+      { $unwind: "$user" },
       {
         $match: {
-          "user.username": { $regex: keyword, $options: "i" }
-        }
+          "user.username": { $regex: keyword, $options: "i" },
+        },
       },
       {
         $project: {
-          "user.password": 0, // Güvenlik için şifreyi çıkar
-          "user.email": 0
-        }
-      }
+          "user.password": 0,
+          "user.email": 0,
+        },
+      },
     ]);
   }
 }
