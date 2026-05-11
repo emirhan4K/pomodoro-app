@@ -393,7 +393,7 @@ const Profile = ({ profile, requests = [], refresh }) => {
         onClose={closeModal}
         type={modalData.type}
         title={modalData.title}
-       profileId={displayProfile?.id || displayProfile?.userId || displayProfile?._id}
+      profileId={viewedId}
       />
     </div>
   );
