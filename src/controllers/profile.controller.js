@@ -35,7 +35,8 @@ class ProfileController {
   getPublicProfile = async (req, res, next) => {
     try {
       const targetUserId = req.params.userId;
-      const profile = await this.profileService.getPublicProfile(targetUserId);
+      const currentUserId = req.user?.id || req.user?._id;
+      const profile = await this.profileService.getPublicProfile(targetUserId, currentUserId);
       res.status(200).json(profile);
     } catch (error) {
       next(error);

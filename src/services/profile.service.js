@@ -32,12 +32,34 @@ class ProfileService {
   async handleCompletedPomodoro(userId, duration) {
     return await this.profileRepository.updateStats(userId, duration);
   }
-  async getPublicProfile(targetUserId) {
+ async getPublicProfile(targetUserId, currentUserId) {
     const user = await this.userRepository.findById(targetUserId);
     if (!user) throw new BadRequestException("Kullanıcı bulunamadı!");
 
     const profile = await this.profileRepository.findByUserId(targetUserId);
-    return ProfileMapper.toResponse(user, profile);
+    if (!profile) throw new BadRequestException("Profil bulunamadı!");
+
+    let isBlockedByMe = false;
+    //(Bakan kişi giriş yapmışsa ve kendi profili değilse çalışır)
+    if (currentUserId && String(currentUserId) !== String(targetUserId)) {
+      //  Karşı taraf beni engellemiş mi?
+      const isBlockedByTarget = profile.blockedUsers?.some(
+        (id) => String(id) === String(currentUserId)
+      );
+      if (isBlockedByTarget) {
+        throw new UnauthorizedException("Bu profil bulunamadı veya bu kullanıcı sizi engelledi.");
+      }
+      // Ben onu engellemiş miyim?
+      const currentUserProfile = await this.profileRepository.findByUserId(currentUserId);
+      isBlockedByMe = currentUserProfile?.blockedUsers?.some(
+        (id) => String(id) === String(targetUserId)
+      );
+    }
+    const responseData = ProfileMapper.toResponse(user, profile);
+    if (isBlockedByMe) {
+      responseData.isBlockedByMe = true;
+    }
+    return responseData;
   }
   async gainXp(userId, earnedXp) {
     const cleanId = userId?.id || userId?._id || userId;

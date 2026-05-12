@@ -114,6 +114,20 @@ class ProfileRepository extends BaseRepository {
       },
     ]);
   }
+  async blockUser(currentUserId, targetUserId) {   //Birini engelle listesine ekle
+    return await this.model.findOneAndUpdate(
+      { user: currentUserId },
+      { $addToSet: { blockedUsers: targetUserId } }, 
+      { new: true }
+    );
+  }
+  async unblockUser(currentUserId, targetUserId) {   //Birini engelle listesinden çıkar
+    return await this.model.findOneAndUpdate(
+      { user: currentUserId },
+      { $pull: { blockedUsers: targetUserId } }, 
+      { new: true }
+    );
+  }
 }
 
 module.exports = ProfileRepository;

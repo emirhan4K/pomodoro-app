@@ -25,6 +25,11 @@ export const FollowService = {
   getFollowing: (targetId) => api.get(`/users/${targetId}/following`),
 };
 
+export const BlockService = {
+  block: (targetId) => api.post(`/blocks/${targetId}/block`),
+  unblock: (targetId) => api.post(`/blocks/${targetId}/unblock`),
+};
+
 export const PomodoroService = {
   startSession: (duration, category) =>
     api.post("/pomodoros", { duration, category }),

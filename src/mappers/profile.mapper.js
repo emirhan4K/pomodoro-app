@@ -19,10 +19,10 @@ class ProfileMapper {
       currentStreak: profileDoc.currentStreak || 0,
       bestStreak: profileDoc.bestStreak || 0,
       lastSessionDate: profileDoc.lastSessionDate || null,
-      // 2. DİĞER GİZLİ HATA: profile.followers değil profileDoc.followers
       social: {
         followers: profileDoc.followers || [],
-        following: profileDoc.following || []
+        following: profileDoc.following || [],
+        blockedUsers: profileDoc.blockedUsers || []
       }
     };
   }

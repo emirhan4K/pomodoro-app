@@ -3,7 +3,7 @@ import { useSearchParams, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import api from "../services/api"; 
 import { useAuth } from "../context/AuthContext"; 
-import { FollowService, ProfileService } from "../services/api.services"; // ProfileService EKLENDİ
+import { FollowService, ProfileService,BlockService } from "../services/api.services"; 
 import FollowModal from "../components/FollowModal"; 
 
 const Profile = ({ profile, requests = [], refresh }) => {
@@ -12,13 +12,11 @@ const Profile = ({ profile, requests = [], refresh }) => {
   const activeTab = searchParams.get("tab") || "stats";
   const [searchQuery, setSearchQuery] = useState("");
   const [friends, setFriends] = useState([]);
-
+  const [isBlocked, setIsBlocked] = useState(false);
   const { profile: currentUser } = useAuth(); 
-
   // --- DİNAMİK PROFİL STATE'İ ---
   const [displayProfile, setDisplayProfile] = useState(null);
   const [pageLoading, setPageLoading] = useState(true);
-
   // --- TAKİP SİSTEMİ STATE'LERİ ---
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -55,29 +53,22 @@ const Profile = ({ profile, requests = [], refresh }) => {
   const viewedId = displayProfile?.userId || displayProfile?.id || displayProfile?._id;
   const isMyProfile = String(myId) === String(viewedId);
 
-  // 2. Profil datası güncellendiğinde stateleri senkronize et
   useEffect(() => {
     if (displayProfile) {
-      // Güvenli dizi kontrolleri
       const followersArray = displayProfile.social?.followers || [];
       const followingArray = displayProfile.social?.following || [];
       
-      // Rakamları güncelle (Dizi boşsa sayıyı kontrol et)
       setFollowersCount(followersArray.length || displayProfile.social?.followersCount || 0);
       setFollowingCount(followingArray.length || displayProfile.social?.followingCount || 0);
-
-      // F5 HATASINI KÖKTEN ÇÖZEN YER: Takipçiler arasında benim ID'm var mı?
       const amIFollowing = followersArray.some(follower => {
-        // Takipçi bazen sadece ID (string), bazen de obje ({_id: "..."}) olarak gelebilir
         const followerId = typeof follower === 'object' ? (follower._id || follower.id || follower.userId) : follower;
         return String(followerId) === String(myId);
       });
-      
+      setIsBlocked(displayProfile.isBlockedByMe || false);
       setIsFollowing(displayProfile.isFollowing ?? amIFollowing);
     }
   }, [displayProfile, myId]);
 
-  // Arkadaş listesini çek
   useEffect(() => {
     if (activeTab === "friends") {
       api.get("/friendships")
@@ -116,8 +107,25 @@ const Profile = ({ profile, requests = [], refresh }) => {
       console.error("Takip işlemi başarısız:", error);
     }
   };
+  const handleBlockToggle = async () => {
+    try {
+      const targetId = displayProfile?.id || displayProfile?.userId || displayProfile?._id;
+      if (!targetId) return;
 
-  // Yüklenme Ekranı (Tasarımına Uygun)
+      if (isBlocked) {
+        await BlockService.unblock(targetId);
+        setIsBlocked(false);
+      } else {
+        await BlockService.block(targetId);
+        setIsBlocked(true);
+        setIsFollowing(false); 
+      }
+    } catch (error) {
+      console.error("Engelleme işlemi başarısız:", error);
+    }
+  };
+
+
   if (pageLoading || !displayProfile) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] flex items-center justify-center">
@@ -126,7 +134,6 @@ const Profile = ({ profile, requests = [], refresh }) => {
     );
   }
 
-  // --- EKRANA BASILACAK DEĞİŞKENLER (displayProfile'a göre) ---
   const displayName = displayProfile.username || "İsimsiz Kahraman";
   const bio = displayProfile.title || "Henüz bir unvan eklenmemiş.";
   const email = displayProfile.email || "";
@@ -170,7 +177,7 @@ const Profile = ({ profile, requests = [], refresh }) => {
               </div>
 
               {/* Ayarlara Git Butonu SADECE BENİM PROFİLİMSE GÖZÜKSÜN */}
-              {isMyProfile && (
+              {isMyProfile ? (
                 <button
                   onClick={() => (window.location.href = "/settings")}
                   className="absolute top-6 right-6 p-2.5 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-700 backdrop-blur-md rounded-xl transition-all text-slate-600 dark:text-slate-300 z-20 shadow-sm hover:scale-110 hover:rotate-45 duration-300"
@@ -178,6 +185,16 @@ const Profile = ({ profile, requests = [], refresh }) => {
                 >
                   ⚙️
                 </button>
+              ) : (
+                !isBlocked && (
+                  <button
+                    onClick={handleBlockToggle}
+                    className="absolute top-6 right-6 p-2.5 bg-rose-500/10 hover:bg-rose-500 backdrop-blur-md rounded-xl transition-all text-rose-500 hover:text-white z-20 shadow-sm hover:scale-110 duration-300 border border-rose-500/20"
+                    title="Bu Kullanıcıyı Engelle"
+                  >
+                    🚫
+                  </button>
+                )
               )}
 
               {/* Büyük Profil Avatarı */}
@@ -254,6 +271,13 @@ const Profile = ({ profile, requests = [], refresh }) => {
                     className="w-[80%] relative overflow-hidden py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-95 bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] border border-indigo-500/50"
                   >
                     Profili Düzenle
+                  </button>
+                ) : isBlocked ? (
+                  <button
+                    onClick={handleBlockToggle}
+                    className="w-[80%] relative overflow-hidden py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 transform active:scale-95 bg-rose-600 text-white hover:bg-rose-500 shadow-[0_0_20px_rgba(225,29,72,0.3)] hover:shadow-[0_0_25px_rgba(225,29,72,0.5)] border border-rose-500/50"
+                  >
+                    <span className="relative z-10">Engeli Kaldır</span>
                   </button>
                 ) : (
                   <button
