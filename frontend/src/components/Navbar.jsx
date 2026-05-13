@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ProfileService } from '../services/api.services';
 
 const Navbar = ({ notificationCount = 0 }) => {
   const navigate = useNavigate();
+  const location = useLocation(); // Hangi sayfada olduğumuzu bulmak için eklendi
   const { profile, logout } = useAuth();
   
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(document.documentElement.classList.contains('dark'));
 
-  // --- ARAMA MOTORU STATELERİ (Yeni Tasarım İçin Güncellendi) ---
-  const [isSearchOpen, setIsSearchOpen] = useState(false); // Arama kutusunun açık/kapalı durumu
+  // --- ARAMA MOTORU STATELERİ ---
+  const [isSearchOpen, setIsSearchOpen] = useState(false); 
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const searchContainerRef = useRef(null); // Tüm arama yapısını içeren referans
-  const searchInputRef = useRef(null); // Sadece input alanını içeren referans
+  const searchContainerRef = useRef(null); 
+  const searchInputRef = useRef(null); 
 
   // Arama menüsü dışarı tıklandığında kapansın
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Eğer tıklama arama konteyneri dışındaysa ve dropdown tetikleyici butonu değilse kapat
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target) && !event.target.closest('.search-trigger-btn')) {
         setIsSearchOpen(false);
       }
@@ -90,8 +90,21 @@ const Navbar = ({ notificationCount = 0 }) => {
       </div>
 
       {/* 2. ORTA/SAĞ TARAF - Arama Motoru ve Aksiyonlar */}
-      <div className="flex items-center gap-2 relative">
+      <div className="flex items-center gap-2 md:gap-3 relative">
         
+        {/* --- YENİ EKLENEN GÖREVLER BUTONU --- */}
+        <Link 
+          to="/tasks" 
+          className={`flex items-center gap-2 p-2.5 md:px-4 md:py-2.5 rounded-xl font-black text-xs transition-all border shadow-sm tracking-widest uppercase ${
+            location.pathname === '/tasks' 
+              ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border-indigo-300 dark:border-indigo-700/50' 
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-indigo-600 dark:hover:text-amber-400 border-transparent hover:border-slate-300 dark:hover:border-slate-700'
+          }`}
+        >
+          <span className="text-sm md:text-base">🎯</span>
+          <span className="hidden md:block">GÖREVLER</span>
+        </Link>
+
         {/* --- DİNAMİK ARAMA MOTORU KONTEYNERİ --- */}
         <div ref={searchContainerRef} className={`absolute top-0 right-12 transition-all duration-300 ease-out ${isSearchOpen ? 'w-80 opacity-100' : 'w-0 opacity-0 pointer-events-none'}`}>
           <div className="relative group">

@@ -17,17 +17,25 @@ class TaskService {
       userId,
       ...taskData,
     });
-    return { user, task };
   }
-  async getUserTasks(userId) { //Sadece o kullanıcıya ait olan tüm görevleri getirir.
-    return await this.taskRepository.find({ userId });
+  async getUserTasks(userId) { 
+    const tasks = await this.taskRepository.find({ userId });
+    //Tamamlanmamışlar (false) en üstte, tamamlananlar (true) en altta.
+    return tasks.sort((a, b) => {
+      if (a.isCompleted === b.isCompleted) return 0;
+      return a.isCompleted ? 1 : -1;
+    });
   }
   async completeTask(taskId, userId) {
     const task = await this.taskRepository.findOne({ _id: taskId, userId });
-    if (!task) throw new BadRequestException("Görev bulunamadı veya yetkiniz yok!");
-
+    if (!task || task.isCompleted === true) throw new BadRequestException("Görev bulunamadı veya tamamlanmış!");
     const updatedTask = await this.taskRepository.update(taskId, { isCompleted: true });
-    await this.profileService.gainXp(userId, 50); //50 xp ekle 
+    const xpAmount = {
+      easy:20,
+      medium:50,
+      hard:100
+    }[task.difficulty] ?? 0;
+    await this.profileService.gainXp(userId,xpAmount);
     return updatedTask;
   }
   async deleteTask(taskId, userId) {
@@ -35,6 +43,14 @@ class TaskService {
     if (!task) throw new BadRequestException("Görev bulunamadı veya yetkiniz yok!");
 
     return await this.taskRepository.delete(taskId);
+  }
+  async updateTask(taskId, userId, updateData) {
+    const task = await this.taskRepository.findOne({ _id: taskId, userId });
+    if (!task) throw new BadRequestException("Görev bulunamadı veya yetkiniz yok!");
+    return await this.taskRepository.update(taskId, {
+      title: updateData.title,
+      difficulty: updateData.difficulty
+    });
   }
 }
 

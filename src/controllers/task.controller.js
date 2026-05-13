@@ -35,6 +35,14 @@ class TaskController {
       next(error);
     }
   };
+  updateTask = async (req, res, next) => {
+    try {
+      const result = await this.taskService.updateTask(req.params.id, req.user.id, req.body);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = TaskController;

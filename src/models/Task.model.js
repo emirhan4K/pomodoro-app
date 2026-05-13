@@ -15,6 +15,30 @@ const taskSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    missionType: {
+      type: String,
+      enum: ["POMODORO", "FOCUS_TIME", "ROOM_JOIN"], 
+      required: true,
+    },
+    difficulty: {
+      type: String,
+      enum: ["easy", "medium", "hard"],
+      default: "medium",
+    },
+    target: {
+      type: Number,
+      required: true,
+    },
+    // Kullanıcının şu anki durumu (Örn: 1 Pomodoro yaptı)
+    progress: {
+      type: Number,
+      default: 0,
+    },
+    // Görev bittiğinde kullanıcı XP ödülünü aldı mı?
+    isClaimed: {
+      type: Boolean,
+      default: false,
+    },
     pomodoroCount: {
       type: Number,
       default: 0,

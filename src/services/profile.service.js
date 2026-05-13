@@ -80,15 +80,22 @@ class ProfileService {
 
     let xp = profile.xp + earnedXp;
     let level = profile.level;
+    let hasLeveledUp = false;
 
     // Seviye atlama kontrolü
     let requiredXp = Math.floor(level * 100 * 1.5);
-    if (xp >= requiredXp) {
-      level += 1;
+    while (xp >= requiredXp) {
+      level += 1; // Seviye atlat
+      hasLeveledUp = true; 
+      requiredXp = Math.floor(level * 100 * 1.5); 
     }
-
     await this.profileRepository.update(profile._id, { xp, level });
-    return { xp, level };
+    return { 
+      xp, 
+      level, 
+      hasLeveledUp,
+      nextLevelXp: requiredXp
+    };
   }
   async updateProfileInfo(userId, { name, title }) {
     const updatedUser = await this.userRepository.model

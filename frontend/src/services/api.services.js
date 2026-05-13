@@ -1,4 +1,4 @@
-import api from "./api"; 
+import api from "./api";
 
 export const AuthService = {
   login: (data) => api.post("/auth/login", data),
@@ -7,13 +7,14 @@ export const AuthService = {
 
 export const ProfileService = {
   getMe: () => api.get(`/profile/me?t=${new Date().getTime()}`),
-  searchUsers: (query) => api.get(`/profile/search?q=${query}`), 
+  searchUsers: (query) => api.get(`/profile/search?q=${query}`),
   getPublicProfile: (userId) => api.get(`/profile/${userId}`),
 };
 
 export const TaskService = {
   getTasks: () => api.get("/tasks"),
   createTask: (title) => api.post("/tasks", { title }),
+  updateTask: (id, taskData) => api.put(`/tasks/${id}`, taskData),
   completeTask: (id) => api.patch(`/tasks/${id}/complete`),
   deleteTask: (id) => api.delete(`/tasks/${id}`),
 };
@@ -28,7 +29,7 @@ export const FollowService = {
 export const BlockService = {
   block: (targetId) => api.post(`/blocks/${targetId}/block`),
   unblock: (targetId) => api.post(`/blocks/${targetId}/unblock`),
-  getBlockedList: () => api.get('/blocks/list'), 
+  getBlockedList: () => api.get("/blocks/list"),
 };
 
 export const PomodoroService = {

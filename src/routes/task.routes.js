@@ -8,9 +8,11 @@ const {taskSchema} = require("../validations/task.validations");
 const authMiddleware = require('../middlewares/auth.middleware');
 router.use(authMiddleware);
 
-router.post("/",validate(taskSchema),taskController.createTask);
 router.get("/",taskController.getUserTasks);
-router.patch("/:id/complete",taskController.completeTask);
+router.post("/",validate(taskSchema),taskController.createTask);
+router.put("/:id", validate(taskSchema), taskController.updateTask)
 router.delete("/:id",taskController.deleteTask);
+router.patch("/:id/complete",taskController.completeTask);  
+
 
 module.exports = router;
