@@ -4,7 +4,6 @@ import { RoomService } from '../services/api.services';
 import RoomCard from '../components/RoomCard';
 import CreateRoomModal from '../components/CreateRoomModal';
 
-// DİKKAT: App.jsx'ten gelen 'profile' verisini buraya ekledik!
 const Room = ({ profile }) => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,10 +35,11 @@ const Room = ({ profile }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-white p-6 font-sans">
+    // Mobilde p-4, bilgisayarda p-6 yaptık ki kenarlardan rahatlasın
+    <div className="min-h-screen bg-[#0b0e14] text-white p-4 md:p-6 font-sans">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-          <div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-12 gap-6">
+          <div className="w-full md:w-auto">
             <button 
               onClick={() => navigate('/dashboard')}
               className="mb-4 flex items-center gap-2 text-slate-500 hover:text-indigo-400 transition-colors text-sm font-black uppercase tracking-tighter"
@@ -47,13 +47,15 @@ const Room = ({ profile }) => {
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
               DASHBOARD
             </button>
-            <h1 className="text-4xl font-black text-white tracking-tight italic">TOPLULUK ODALARI</h1>
+            {/* Mobilde text-3xl, bilgisayarda text-4xl */}
+            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight italic">TOPLULUK ODALARI</h1>
             <p className="text-slate-400 mt-2 text-sm font-medium">Birlikte odaklan, tecrübe kazan ve seviye atla.</p>
           </div>
           
+          {/* Mobilde w-full (tam genişlik), bilgisayarda w-auto */}
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 hover:-translate-y-1 active:scale-95"
+            className="w-full md:w-auto justify-center px-6 py-3 md:px-8 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 hover:-translate-y-1 active:scale-95"
           >
             <span className="text-xl">+</span> YENİ ODA KUR
           </button>
@@ -64,15 +66,15 @@ const Room = ({ profile }) => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-indigo-500"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
             {rooms.length > 0 ? (
               rooms.map((room, index) => (
                 <RoomCard 
                   key={room.id || room._id || index} 
                   room={room} 
-                  currentUser={profile}        // 1. DÜZELTME: Silme butonunun görünmesi için eklendi
+                  currentUser={profile}        
                   onJoinSuccess={fetchRooms} 
-                  onDeleteSuccess={fetchRooms} // 2. DÜZELTME: F5 atmadan anında silinmesi için eklendi!
+                  onDeleteSuccess={fetchRooms} 
                 />
               ))
             ) : (
