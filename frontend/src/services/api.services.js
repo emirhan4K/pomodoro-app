@@ -28,6 +28,7 @@ export const FollowService = {
 export const BlockService = {
   block: (targetId) => api.post(`/blocks/${targetId}/block`),
   unblock: (targetId) => api.post(`/blocks/${targetId}/unblock`),
+  getBlockedList: () => api.get('/blocks/list'), 
 };
 
 export const PomodoroService = {

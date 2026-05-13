@@ -128,6 +128,15 @@ class ProfileRepository extends BaseRepository {
       { new: true }
     );
   }
+  async getBlockedUsersList(userId){ //Engellenenler listesini getir
+    const profile = await this.model.findOne({user:userId}).populate("blockedUsers");
+    if (!profile || !profile.blockedUsers || profile.blockedUsers.length === 0) {
+      return [];
+    }
+    return await this.model
+      .find({ user: { $in: profile.blockedUsers } })
+      .populate("user"); 
+  }
 }
 
 module.exports = ProfileRepository;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import BlockedUsersTab from "../components/BlockedUsersTab"; // Component'i çağırdık
 
 const Settings = ({ refresh }) => {
   const { user } = useAuth();
@@ -125,7 +126,6 @@ const Settings = ({ refresh }) => {
         let updatedAvatar = formData.avatar;
         let updatedBanner = formData.banner;
 
-        // 1. ÖNCE AVATARI YÜKLE (Eğer yeni seçildiyse)
         if (selectedAvatarFile) {
           const avatarData = new FormData();
           avatarData.append("avatar", selectedAvatarFile);
@@ -140,7 +140,6 @@ const Settings = ({ refresh }) => {
           setAvatarPreview(null);
         }
 
-        // 2. ÖNCE BANNERI YÜKLE (Eğer yeni seçildiyse)
         if (selectedBannerFile) {
           const bannerData = new FormData();
           bannerData.append("banner", selectedBannerFile);
@@ -155,12 +154,11 @@ const Settings = ({ refresh }) => {
           setBannerPreview(null);
         }
 
-        // 3. EN SON BİLGİLERİ GÜNCELLE (Böylece resimler silinmez!)
         await api.put("/profile/update-info", {
           name: formData.name,
           title: formData.title,
-          avatar: updatedAvatar, // Mevcut veya yeni resmi de yolla ki silinmesin
-          banner: updatedBanner, // Mevcut veya yeni kapağı da yolla ki silinmesin
+          avatar: updatedAvatar,
+          banner: updatedBanner,
         });
 
         if (refresh) await refresh();
@@ -181,7 +179,7 @@ const Settings = ({ refresh }) => {
     } catch (error) {
       showMessage(
         "error",
-        error.response?.data?.message || "Kaydedilirken bir hata oluştu!",
+        error.response?.data?.message || "Kaydedilirken bir hata oluştu!"
       );
     } finally {
       setIsSaving(false);
@@ -206,7 +204,7 @@ const Settings = ({ refresh }) => {
     } catch (error) {
       showMessage(
         "error",
-        error.response?.data?.message || "Şifre güncellenemedi!",
+        error.response?.data?.message || "Şifre güncellenemedi!"
       );
     } finally {
       setIsSaving(false);
@@ -215,7 +213,7 @@ const Settings = ({ refresh }) => {
 
   const handleDeleteAccount = async () => {
     const isConfirmed = window.confirm(
-      "Hesabınızı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!",
+      "Hesabınızı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!"
     );
     if (!isConfirmed) return;
     try {
@@ -226,16 +224,18 @@ const Settings = ({ refresh }) => {
     } catch (error) {
       showMessage(
         "error",
-        error.response?.data?.message || "Hesap silinirken hata oluştu!",
+        error.response?.data?.message || "Hesap silinirken hata oluştu!"
       );
     }
   };
 
+  // İŞTE BURAYA ENGELLENENLER SEKMESİNİ EKLEDİK
   const tabs = [
     { id: "profile", icon: "👤", label: "Profil Ayarları" },
     { id: "timer", icon: "⏱️", label: "Çalışma & Pomodoro" },
     { id: "notifications", icon: "🔔", label: "Bildirimler ve Ses" },
     { id: "account", icon: "🔒", label: "Hesap Güvenliği" },
+    { id: "blocked", icon: "🚫", label: "Engellenenler" }, 
   ];
 
   if (isLoading) {
@@ -488,7 +488,6 @@ const Settings = ({ refresh }) => {
                     Bildirimler ve Ses
                   </h2>
                   <div className="space-y-4">
-                    {/* BİLDİRİMLER BUG'I DÜZELTİLDİ: State isimleriyle tam uyumlu hale getirildi */}
                     {[
                       { id: "soundEnabled", label: "Uygulama Sesleri" },
                       { id: "notificationsEnabled", label: "Bildirimler" },
@@ -570,7 +569,15 @@ const Settings = ({ refresh }) => {
                 </div>
               )}
 
-              {activeTab !== "account" && (
+              {/* İŞTE BURAYA BİZİM COMPONENTİ KOYDUK */}
+              {activeTab === "blocked" && (
+                <div className="animate-fadeIn h-full">
+                  <BlockedUsersTab />
+                </div>
+              )}
+
+              {/* SAVE BUTONU BURADA SAKLANDI */}
+              {activeTab !== "account" && activeTab !== "blocked" && (
                 <div className="mt-auto pt-8 flex justify-end">
                   <button
                     onClick={handleSave}

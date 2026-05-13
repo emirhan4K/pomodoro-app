@@ -19,6 +19,10 @@ class BlockService {
     const unblock = await this.profileRepository.unblockUser(currentUserId, targetUserId);
     return unblock;
   }
+    async getBlockedUsers(currentUserId){
+    const getBlocked = await this.profileRepository.getBlockedUsersList(currentUserId);
+    return ProfileMapper.toBasicProfileListDto(getBlocked);
+  }
 }
 
 module.exports = BlockService;

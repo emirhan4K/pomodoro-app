@@ -5,7 +5,9 @@ const blockController = container.resolve("blockController");
 const authMiddleware = require("../middlewares/auth.middleware");
 router.use(authMiddleware);
 
+router.get("/list",blockController.getBlockedList);
 router.post("/:targetId/block", blockController.block);
 router.post("/:targetId/unblock", blockController.unblock);
+
 
 module.exports = router;

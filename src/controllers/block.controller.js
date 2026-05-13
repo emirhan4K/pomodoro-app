@@ -40,6 +40,15 @@ class BlockController {
       next(error);
     }
   };
+  getBlockedList = async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const result = await this.blockService.getBlockedUsers(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = BlockController;
