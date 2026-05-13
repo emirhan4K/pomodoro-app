@@ -44,7 +44,7 @@ export default function BlockedUsersTab() {
       
       {blockedUsers.length === 0 ? (
         <div className="text-center p-8 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-600">
-          <p className="text-slate-500 dark:text-slate-400">Kara listen tertemiz. Kimseyi engellememişsin!</p>
+          <p className="text-slate-500 dark:text-slate-400">Engellenen Kullanıcı Yok!</p>
         </div>
       ) : (
         <div className="space-y-4">
