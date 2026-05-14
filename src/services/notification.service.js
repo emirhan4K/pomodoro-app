@@ -7,14 +7,21 @@ class NotificationService {
     this.notificationRepository = notificationRepository;
   }
   async createNotification(data) {
-    const create = await this.notificationRepository.create(data);
-    const notificationDto = NotificationMapper.toDto(create);
+    // 1. Kaydı oluştur
+    const savedNotif = await this.notificationRepository.create(data);
+    
+    // 2. Mapper'dan geçir (savedNotif'i gönderiyoruz!)
+    const notificationDto = NotificationMapper.toDto(savedNotif);
+
+    // 3. Socket ile fırlat
     const io = getIo();
     if (io && data.recipient) {
-      io.to(data.recipient.toString()).emit("new_notification", notificationDto);
-      console.log(`📡 Bildirim ${data.recipient} odasına fırlatıldı!`);
+      const room = data.recipient.toString();
+      io.to(room).emit("new_notification", notificationDto);
+      console.log(`📡 SOCKET: Bildirim ${room} odasına başarıyla fırlatıldı!`);
     }
-    return notificationDto;
+
+    return savedNotif;
   }
   async getUserNotifications(userId) {  //Kullanıcının geçmiş bildirimlerini getirecek.
     const notifications = await this.notificationRepository.find({ recipient: userId });
