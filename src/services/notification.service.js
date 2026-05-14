@@ -8,12 +8,13 @@ class NotificationService {
   }
   async createNotification(data) {
     const create = await this.notificationRepository.create(data);
-    const notificationDto = NotificationMapper.toDto(notification);
+    const notificationDto = NotificationMapper.toDto(create);
     const io = getIo();
     if (io && data.recipient) {
-      io.to(data.recipient.toString()).emit("new_notification", notification);
+      io.to(data.recipient.toString()).emit("new_notification", notificationDto);
+      console.log(`📡 Bildirim ${data.recipient} odasına fırlatıldı!`);
     }
-    return create;
+    return notificationDto;
   }
   async getUserNotifications(userId) {  //Kullanıcının geçmiş bildirimlerini getirecek.
     const notifications = await this.notificationRepository.find({ recipient: userId });
