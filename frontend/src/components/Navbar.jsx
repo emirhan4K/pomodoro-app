@@ -58,6 +58,8 @@ const Navbar = () => {
     };
 
     if (profile?._id) {
+      console.log("Bağlanılan ID:", profile._id); // Tarayıcı konsolunda gör
+        socket.emit("join_user_room", profile._id);
       fetchNotifications();
 
       // 1. Kendi kişisel socket odamıza giriyoruz
@@ -65,6 +67,7 @@ const Navbar = () => {
 
       // 2. Canlı yayından yeni bildirim gelirse yakala ve listeye ekle
       const handleNewNotification = (yeniBildirim) => {
+        console.log("🔔 YENİ BİLDİRİM GELDİ:", yeniBildirim);
         setNotifications((prev) => [yeniBildirim, ...prev]);
       };
 
