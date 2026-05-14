@@ -3,8 +3,9 @@ const UnauthorizedException = require("../exceptions/UnauthorizedException");
 const ProfileMapper = require("../mappers/profile.mapper");
 
 class FollowService {
-  constructor({ profileRepository }) {
+  constructor({ profileRepository,notificationService }) {
     this.profileRepository = profileRepository;
+    this.notificationService = notificationService;
   }
   async follow(currentUserId, targetUserId) { 
     if (currentUserId === targetUserId) {
@@ -18,6 +19,12 @@ class FollowService {
       currentUserId,
       targetUserId,
     );
+    await this.notificationService.createNotification({
+      recipient: targetUserId,
+      sender: currentUserId,
+      type: "SYSTEM",
+      content: "Yeni bir takipçin var!"
+    });
     return updated;
   }
   async unfollow(currentUserId, targetUserId) {

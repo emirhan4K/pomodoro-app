@@ -1,8 +1,7 @@
-// ÇÖZÜM: Senin o muazzam container'ını buraya çağırıp servisi çekiyoruz!
-const container = require("../config/container");
-const messageService = container.resolve("messageService");
 
 module.exports = (io, socket) => {
+  const container = require("../config/container");
+  const messageService = container.resolve("messageService");
   
   // Odaya Katılma
   const joinRoom = ({ roomId, user }) => {

@@ -31,6 +31,7 @@ const taskRoutes = require("./routes/task.routes");
 const roomRoutes = require("./routes/room.routes");
 const followRoutes = require("./routes/follow.routes");
 const blockRoutes = require("./routes/block.routes");
+const notificationRoutes = require("./routes/notification.routes");
 
 //API Routes
 app.use('/api/auth',authRoutes);
@@ -40,7 +41,8 @@ app.use('/api/profile',profileRoutes);
 app.use('/api/tasks',taskRoutes);
 app.use('/api/rooms',roomRoutes)
 app.use('/api/users',followRoutes);
-app.use('/api/blocks',blockRoutes)
+app.use('/api/blocks',blockRoutes);
+app.use('/api/notifications',notificationRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 

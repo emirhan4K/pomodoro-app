@@ -32,6 +32,11 @@ export const BlockService = {
   getBlockedList: () => api.get("/blocks/list"),
 };
 
+export const NotificationService = {
+  getNotifications: () => api.get("/notifications"),
+  markAsRead: (id) => api.patch(`/notifications/${id}/read`),
+};
+
 export const PomodoroService = {
   startSession: (duration, category) =>
     api.post("/pomodoros", { duration, category }),
