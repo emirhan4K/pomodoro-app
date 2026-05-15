@@ -41,6 +41,15 @@ class NotificationService {
 
     return NotificationMapper.toDto(updatedNotification);
   }
+  async markAllAsRead(userId) {
+    // Kullanıcıya ait okunmamış tüm bildirimleri bul ve isRead: true yap
+    await this.notificationRepository.model.updateMany(
+      { recipient: userId, isRead: false },
+      { $set: { isRead: true } }
+    );
+
+    return { success: true, message: "Tüm bildirimler okundu." };
+  }
 }
 
 module.exports = NotificationService;

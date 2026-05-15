@@ -23,6 +23,15 @@ class NotificationController {
       next(error);
     }
   };
+  markAllAsRead=  async(req, res, next) => {
+    try {
+      const userId = req.user.id; 
+      const result = await this.notificationService.markAllAsRead(userId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = NotificationController;

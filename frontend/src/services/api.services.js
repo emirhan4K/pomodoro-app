@@ -34,6 +34,7 @@ export const BlockService = {
 
 export const NotificationService = {
   getNotifications: () => api.get("/notifications"),
+  markAllAsRead: () => api.patch("/notifications/read-all"),
   markAsRead: (id) => api.patch(`/notifications/${id}/read`),
 };
 

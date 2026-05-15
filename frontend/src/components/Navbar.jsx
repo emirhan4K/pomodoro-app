@@ -53,17 +53,12 @@ const Navbar = () => {
 
   // Bildirimleri Çek ve Socket.io Dinlemeye Başla
   useEffect(() => {
-    console.log("🔥 Navbar Profile Objesi:", profile);
-
     // 2. Güvenli ID Bulucu (Hangisi doluysa onu alır)
     const userId = profile?._id || profile?.id || profile?.userId;
 
     if (!userId) {
-      console.log("❌ Geçerli bir Kullanıcı ID bulunamadı, bekleniyor...");
       return; // ID yoksa kod aşağı inmez!
     }
-
-    console.log("✅ SOCKET: Odaya katılınıyor ID:", userId);
 
     const fetchNotifications = async () => {
       try {
@@ -79,7 +74,6 @@ const Navbar = () => {
     socket.emit("join_user_room", userId);
 
     const handleNewNotification = (yeniBildirim) => {
-      console.log("🔔 YENİ BİLDİRİM GELDİ:", yeniBildirim);
       setNotifications((prev) => [yeniBildirim, ...prev]);
     };
 
@@ -90,18 +84,26 @@ const Navbar = () => {
     };
   }, [profile]);
 
-  // Okunmamış Bildirim Sayısı
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  // Sadece okunmamış bildirimleri filtrele (silinmiş gibi göstermek için)
+  const unreadNotifications = notifications.filter((n) => !n.isRead);
+  const unreadCount = unreadNotifications.length;
+
+  const handleMarkAllAsRead = async () => {
+    try {
+       await NotificationService.markAllAsRead(); 
+       // Tüm bildirimleri okundu yap (Bu sayede unreadNotifications filtresine takılıp ekrandan kaybolurlar)
+       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (error) {
+      console.error("Tümünü oku hatası:", error);
+    }
+  };
 
   // Bildirime Tıklama (Okundu İşaretle ve Yönlendir)
   const handleNotificationClick = async (notif) => {
-    // Sadece okunmamışsa API'ye istek at
     if (!notif.isRead) {
       try {
-        // Mapper sayesinde artık _id yerine id kullanıyoruz!
         await NotificationService.markAsRead(notif.id);
-
-        // Ekranda anında okundu (gri) yapmak için state'i güncelle
+        // Bildirimi anında okundu yapıp (ekrandan silip) state'i güncelle
         setNotifications((prev) =>
           prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)),
         );
@@ -111,10 +113,10 @@ const Navbar = () => {
     }
     setIsNotifDropdownOpen(false); // Menüyü kapat
 
-    // Tipine göre yönlendirme
-    if (notif.type === "FRIEND_REQUEST") navigate("/profile?tab=friends");
-    if (notif.type === "LEVEL_UP") navigate("/profile?tab=stats");
-    if (notif.type === "SYSTEM") navigate("/profile"); // Veya nereye istersen
+    // Yönlendirme Kontrolleri
+    if (notif.type === "FRIEND_REQUEST" || notif.content.includes("takip etti")) navigate("/profile?tab=friends");
+    else if (notif.type === "LEVEL_UP") navigate("/profile?tab=stats");
+    else navigate("/profile"); // Default yönlendirme
   };
 
   // Arama butonu tıklandığında inputa odaklan
@@ -311,39 +313,48 @@ const Navbar = () => {
           {/* Bildirimler Dropdown Paneli */}
           {isNotifDropdownOpen && (
             <div className="absolute top-14 right-0 w-80 sm:w-96 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top-right flex flex-col max-h-[400px]">
+              
+              {/* BİLDİRİM BAŞLIĞI VE TÜMÜNÜ OKU BUTONU */}
               <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
-                <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-widest text-xs">
-                  Bildirimler
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-slate-800 dark:text-white uppercase tracking-widest text-xs">
+                    Bildirimler
+                  </h3>
+                  {unreadCount > 0 && (
+                    <span className="text-[10px] font-bold text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-md">
+                      {unreadCount} Yeni
+                    </span>
+                  )}
+                </div>
+                {/* İŞTE BURAYA BUTONU EKLEDİK */}
                 {unreadCount > 0 && (
-                  <span className="text-[10px] font-bold text-indigo-500 bg-indigo-500/10 px-2 py-1 rounded-md">
-                    {unreadCount} Okunmamış
-                  </span>
+                  <button 
+                    onClick={handleMarkAllAsRead}
+                    className="text-[10px] font-black text-indigo-500 hover:text-indigo-600 transition-colors uppercase tracking-tighter"
+                  >
+                    Tümünü Oku
+                  </button>
                 )}
               </div>
 
               <div className="overflow-y-auto overflow-x-hidden p-2 flex-1 scrollbar-hide">
-                {notifications.length > 0 ? (
-                  notifications.map((notif) => (
-                    // Mapper'dan gelen id'yi kullanıyoruz
+                {/* SADECE OKUNMAMIŞ BİLDİRİMLERİ (unreadNotifications) GÖSTERİYORUZ */}
+                {unreadNotifications.length > 0 ? (
+                  unreadNotifications.map((notif) => (
                     <div
                       key={notif.id}
                       onClick={() => handleNotificationClick(notif)}
-                      className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 ${notif.isRead ? "opacity-60 hover:opacity-100 hover:bg-slate-100 dark:hover:bg-slate-800/60" : "bg-indigo-50/50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-100 dark:border-indigo-500/20"}`}
+                      className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 bg-indigo-50/50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-100 dark:border-indigo-500/20"
                     >
                       <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-[#1e293b] flex items-center justify-center flex-shrink-0 shadow-inner">
                         {getNotificationIcon(notif.type)}
                       </div>
                       <div className="flex-1 min-w-0 pt-1">
-                        <p
-                          className={`text-sm leading-tight break-words ${notif.isRead ? "text-slate-600 dark:text-slate-400 font-medium" : "text-slate-800 dark:text-slate-200 font-bold"}`}
-                        >
+                        <p className="text-sm leading-tight break-words text-slate-800 dark:text-slate-200 font-bold">
                           {notif.content}
                         </p>
                       </div>
-                      {!notif.isRead && (
-                        <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full flex-shrink-0 mt-1.5 shadow-md shadow-indigo-500/50"></div>
-                      )}
+                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full flex-shrink-0 mt-1.5 shadow-md shadow-indigo-500/50"></div>
                     </div>
                   ))
                 ) : (
@@ -352,10 +363,10 @@ const Navbar = () => {
                       📭
                     </span>
                     <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">
-                      Henüz bildirim yok
+                      Tüm bildirimleri okudun
                     </p>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                      Burasi oldukça sessiz görünüyor.
+                      Şu an buralar tertemiz görünüyor.
                     </p>
                   </div>
                 )}

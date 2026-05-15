@@ -11,6 +11,7 @@ class FollowService {
     if (currentUserId === targetUserId) {
       throw new UnauthorizedException("Kendini takip edemezsin!");
     }
+    const currentUser = await this.profileRepository.findByUserId(currentUserId);
     const target = await this.profileRepository.findByUserId(targetUserId);
     if (!target) {
       throw new BadRequestException("Kullanıcı bulunamadı");
@@ -23,7 +24,7 @@ class FollowService {
       recipient: targetUserId,
       sender: currentUserId,
       type: "SYSTEM",
-      content: "Yeni bir takipçin var!"
+     content: `@${currentUser.username} seni takip etti`
     });
     return updated;
   }
