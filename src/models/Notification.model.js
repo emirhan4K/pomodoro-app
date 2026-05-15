@@ -19,6 +19,10 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  avatar: { 
+    type: String, 
+    default: "default-avatar.png" 
+  },
   isRead: {
       type: Boolean,
       default: false,

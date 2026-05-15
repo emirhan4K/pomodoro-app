@@ -9,6 +9,7 @@ class NotificationMapper {
       type: notification.type,
       content: notification.content,
       isRead: notification.isRead,
+      avatar: notification.avatar,
       createdAt: notification.createdAt,
     };
   }

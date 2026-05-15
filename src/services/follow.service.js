@@ -22,11 +22,13 @@ class FollowService {
       targetUserId,
     );
     const followerName = currentUser?.user?.username || currentUser?.username || "Bir kullanıcı";
+    const followerAvatar = currentUser?.avatar || "default-avatar.png";
     await this.notificationService.createNotification({
       recipient: targetUserId,
       sender: currentUserId,
-      type: "SYSTEM",
+      type: "FRIEND_REQUEST",
       content: `@${followerName} seni takip etti`,
+      avatar: followerAvatar
     });
     return updated;
   }

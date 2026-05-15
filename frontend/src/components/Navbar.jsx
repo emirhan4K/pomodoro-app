@@ -322,7 +322,6 @@ const Navbar = () => {
                     </span>
                   )}
                 </div>
-                {/* İŞTE BURAYA BUTONU EKLEDİK */}
                 {unreadCount > 0 && (
                   <button 
                     onClick={handleMarkAllAsRead}
@@ -334,7 +333,7 @@ const Navbar = () => {
               </div>
 
               <div className="overflow-y-auto overflow-x-hidden p-2 flex-1 scrollbar-hide">
-                {/* SADECE OKUNMAMIŞ BİLDİRİMLERİ (unreadNotifications) GÖSTERİYORUZ */}
+                {/* SADECE OKUNMAMIŞ BİLDİRİMLERİ GÖSTERİYORUZ */}
                 {unreadNotifications.length > 0 ? (
                   unreadNotifications.map((notif) => (
                     <div
@@ -342,8 +341,21 @@ const Navbar = () => {
                       onClick={() => handleNotificationClick(notif)}
                       className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all mb-1 bg-indigo-50/50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-100 dark:border-indigo-500/20"
                     >
-                      <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-[#1e293b] flex items-center justify-center flex-shrink-0 shadow-inner">
-                        {getNotificationIcon(notif.type)}
+                      {/* 🔥 AVATAR KONTROLÜ BURADA YAPILDI 🔥 */}
+                      <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-[#1e293b] flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden border border-slate-300 dark:border-slate-600">
+                        {notif.avatar && notif.avatar !== "default-avatar.png" ? (
+                          <img
+                            src={
+                              notif.avatar.startsWith("http")
+                                ? notif.avatar
+                                : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${notif.avatar}`
+                            }
+                            className="w-full h-full object-cover"
+                            alt="Avatar"
+                          />
+                        ) : (
+                          getNotificationIcon(notif.type)
+                        )}
                       </div>
                       <div className="flex-1 min-w-0 pt-1">
                         <p className="text-sm leading-tight break-words text-slate-800 dark:text-slate-200 font-bold">
