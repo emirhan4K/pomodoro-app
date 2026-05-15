@@ -28,21 +28,22 @@ class NotificationService {
     return NotificationMapper.toDtoList(notifications.reverse());
   }
  async markAsRead(userId, notificationId) {
+    const targetId = notificationId ? notificationId : userId;
     const notification = await this.notificationRepository.findOne({ 
-      _id: notificationId, 
-      recipient: userId 
+      _id: targetId 
     });
+
     if (!notification) {
-      throw new BadRequestException("Bildirim bulunamadı veya yetkiniz yok!");
+      throw new BadRequestException("Bildirim bulunamadı!");
     }
-    const updatedNotification = await this.notificationRepository.update(notificationId, { 
+    const updatedNotification = await this.notificationRepository.update(targetId, { 
       isRead: true 
     });
 
     return NotificationMapper.toDto(updatedNotification);
   }
   async markAllAsRead(userId) {
-    // Kullanıcıya ait okunmamış tüm bildirimleri bul ve isRead: true yap
+    // Kullanıcıya ait okunmamış tüm bildirimleri bul
     await this.notificationRepository.model.updateMany(
       { recipient: userId, isRead: false },
       { $set: { isRead: true } }
