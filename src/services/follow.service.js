@@ -21,13 +21,12 @@ class FollowService {
       currentUserId,
       targetUserId,
     );
-    const followerName =
-      currentUser?.username || currentUser?.user?.username || "Biri";
+    const followerName = currentUser?.user?.username || currentUser?.username || "Bir kullanıcı";
     await this.notificationService.createNotification({
       recipient: targetUserId,
       sender: currentUserId,
       type: "SYSTEM",
-      content: `@${currentUser.username} seni takip etti`,
+      content: `@${followerName} seni takip etti`,
     });
     return updated;
   }

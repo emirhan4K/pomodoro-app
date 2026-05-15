@@ -103,7 +103,7 @@ const Navbar = () => {
     if (!notif.isRead) {
       try {
         await NotificationService.markAsRead(notif.id);
-        // Bildirimi anında okundu yapıp (ekrandan silip) state'i güncelle
+        // Bildirimi anında okundu yapıp (filtrelenip silinmesini) sağlıyoruz
         setNotifications((prev) =>
           prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)),
         );
@@ -111,12 +111,8 @@ const Navbar = () => {
         console.error("Bildirim okunamadı", error);
       }
     }
-    setIsNotifDropdownOpen(false); // Menüyü kapat
-
-    // Yönlendirme Kontrolleri
-    if (notif.type === "FRIEND_REQUEST" || notif.content.includes("takip etti")) navigate("/profile?tab=friends");
-    else if (notif.type === "LEVEL_UP") navigate("/profile?tab=stats");
-    else navigate("/profile"); // Default yönlendirme
+    // Sadece menüyü kapatıyoruz, navigate satırlarını sildik!
+    setIsNotifDropdownOpen(false); 
   };
 
   // Arama butonu tıklandığında inputa odaklan

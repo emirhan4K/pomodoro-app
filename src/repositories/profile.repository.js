@@ -35,7 +35,7 @@ class ProfileRepository extends BaseRepository {
   async findByUserId(userId) {
     const id = userId?.user || userId?.id || userId;
     if (!id) return null;
-    return await this.model.findOne({ user: id });
+    return await this.model.findOne({ user: id }).populate("user");
   }
   async followUser(currentUserId, targetUserId) {
     const [updatedCurrentUser, updatedTargetUser] = await Promise.all([
