@@ -127,6 +127,13 @@ const Navbar = () => {
       await NotificationService.markAsRead(notif.id);
       setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)));
       setIsNotifDropdownOpen(false);
+      if (notif.roomId) {
+        try {
+           await RoomService.joinRoom(notif.roomId); 
+        } catch(err) {
+           console.log("Zaten odadasın veya giriş hatası:", err);
+        }
+      }
       if (notif.roomSlug) {
         navigate(`/room/${notif.roomSlug}`);
       } else {
