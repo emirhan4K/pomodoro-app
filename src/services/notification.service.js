@@ -9,7 +9,7 @@ class NotificationService {
   async createNotification(data) {
     // 1. Kaydı oluştur
     const savedNotif = await this.notificationRepository.create(data);
-    
+
     // 2. Mapper'dan geçir (savedNotif'i gönderiyoruz!)
     const notificationDto = NotificationMapper.toDto(savedNotif);
 
@@ -23,14 +23,20 @@ class NotificationService {
 
     return savedNotif;
   }
-  async getUserNotifications(userId) {  //Kullanıcının geçmiş bildirimlerini getirecek.
-    const notifications = await this.notificationRepository.find({ recipient: userId });
+  async getUserNotifications(userId) {
+    //Kullanıcının geçmiş bildirimlerini getirecek.
+    const notifications = await this.notificationRepository.find({
+      recipient: userId,
+    });
     return NotificationMapper.toDtoList(notifications.reverse());
   }
- async markAsRead(notificationId) {
-    const updatedNotification = await this.notificationRepository.update(notificationId, { 
-      isRead: true 
-    });
+  async markAsRead(notificationId) {
+    const updatedNotification = await this.notificationRepository.update(
+      notificationId,
+      {
+        isRead: true,
+      },
+    );
 
     if (!updatedNotification) {
       throw new BadRequestException("Bildirim bulunamadı veya güncellenemedi!");
@@ -42,7 +48,7 @@ class NotificationService {
     // Kullanıcıya ait okunmamış tüm bildirimleri bul
     await this.notificationRepository.model.updateMany(
       { recipient: userId, isRead: false },
-      { $set: { isRead: true } }
+      { $set: { isRead: true } },
     );
 
     return { success: true, message: "Tüm bildirimler okundu." };

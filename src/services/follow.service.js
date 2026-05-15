@@ -3,15 +3,16 @@ const UnauthorizedException = require("../exceptions/UnauthorizedException");
 const ProfileMapper = require("../mappers/profile.mapper");
 
 class FollowService {
-  constructor({ profileRepository,notificationService }) {
+  constructor({ profileRepository, notificationService }) {
     this.profileRepository = profileRepository;
     this.notificationService = notificationService;
   }
-  async follow(currentUserId, targetUserId) { 
+  async follow(currentUserId, targetUserId) {
     if (currentUserId === targetUserId) {
       throw new UnauthorizedException("Kendini takip edemezsin!");
     }
-    const currentUser = await this.profileRepository.findByUserId(currentUserId);
+    const currentUser =
+      await this.profileRepository.findByUserId(currentUserId);
     const target = await this.profileRepository.findByUserId(targetUserId);
     if (!target) {
       throw new BadRequestException("Kullanıcı bulunamadı");
@@ -20,12 +21,13 @@ class FollowService {
       currentUserId,
       targetUserId,
     );
-    const followerName = currentUser?.username || currentUser?.user?.username || "Biri";  
+    const followerName =
+      currentUser?.username || currentUser?.user?.username || "Biri";
     await this.notificationService.createNotification({
       recipient: targetUserId,
       sender: currentUserId,
       type: "SYSTEM",
-     content: `@${currentUser.username} seni takip etti`
+      content: `@${currentUser.username} seni takip etti`,
     });
     return updated;
   }
@@ -43,11 +45,13 @@ class FollowService {
     );
     return updated;
   }
-  async getFollowers(targetId) { //Takipçileri Getir
+  async getFollowers(targetId) {
+    //Takipçileri Getir
     const followers = await this.profileRepository.getFollowersList(targetId);
     return ProfileMapper.toBasicProfileListDto(followers);
   }
-  async getFollowing(userId) { //Takip Ettiklerini Getir
+  async getFollowing(userId) {
+    //Takip Ettiklerini Getir
     const following = await this.profileRepository.getFollowingList(userId);
     return ProfileMapper.toBasicProfileListDto(following);
   }
