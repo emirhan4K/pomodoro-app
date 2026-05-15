@@ -17,13 +17,13 @@ const ActiveRoom = ({ profile }) => {
   const [roomLogs, setRoomLogs] = useState([]);
 
   // CHAT STATE'LERİ
-  const [messages, setMessages] = useState([]); 
+  const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
 
   // 🔥 DAVET MODAL STATE'LERİ 🔥
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [friendsList, setFriendsList] = useState([]);
-  const [invitedUsers, setInvitedUsers] = useState([]); 
+  const [invitedUsers, setInvitedUsers] = useState([]);
 
   const roomIdRef = useRef(null);
 
@@ -40,7 +40,7 @@ const ActiveRoom = ({ profile }) => {
     setIsActive,
     setSelectedMinutes,
   } = usePomodoro();
-  
+
   const profileRef = useRef(profile);
   useEffect(() => {
     profileRef.current = profile;
@@ -73,26 +73,34 @@ const ActiveRoom = ({ profile }) => {
     totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
   const strokeDashoffset = circumference - progress * circumference;
 
-  // 1. Odayı ve Geçmiş Mesajları API'den Çekme
   useEffect(() => {
+    if (!profile || (!profile._id && !profile.id)) return;
+
     const fetchRoomDetails = async () => {
       try {
         const response = await RoomService.getRoomBySlug(roomSlug);
         let data = response?.room || response?.data || response;
+        if (profile && data.members) {
+          const myAvatar =
+            profile.avatar ||
+            profile.profile?.avatar ||
+            "default-avatar.png";
 
-        if (profileRef.current && data.members) {
-          const myAvatar = profileRef.current.avatar || profileRef.current.profile?.avatar || "default-avatar.png";
-          
           const myIndex = data.members.findIndex(
-            (m) => String(m._id || m.id) === String(profileRef.current._id || profileRef.current.id)
+            (m) =>
+              String(m._id || m.id) ===
+              String(profile._id || profile.id),
           );
 
           if (myIndex === -1) {
-            data.members = [...data.members, { ...profileRef.current, avatar: myAvatar }];
+            data.members = [
+              ...data.members,
+              { ...profile, avatar: myAvatar },
+            ];
           } else {
-            data.members[myIndex] = { 
-              ...data.members[myIndex], 
-              avatar: myAvatar || data.members[myIndex].avatar 
+            data.members[myIndex] = {
+              ...data.members[myIndex],
+              avatar: myAvatar || data.members[myIndex].avatar,
             };
           }
         }
@@ -109,7 +117,6 @@ const ActiveRoom = ({ profile }) => {
             console.error("Geçmiş mesajlar çekilemedi", err);
           }
         }
-
       } catch (error) {
         navigate("/rooms");
       } finally {
@@ -118,13 +125,9 @@ const ActiveRoom = ({ profile }) => {
     };
 
     if (roomSlug) fetchRoomDetails();
-
     return () => {
-      if (roomIdRef.current) {
-        RoomService.leaveRoom(roomIdRef.current).catch(() => {});
-      }
     };
-  }, [roomSlug, navigate]);
+  }, [roomSlug, navigate, profile]);
 
   // 2. CHAT DİNLEYİCİLERİ
   useEffect(() => {
@@ -133,21 +136,21 @@ const ActiveRoom = ({ profile }) => {
     const handleNewMessage = (msg) => {
       setMessages((prev) => [...prev, msg]);
       if (profileRef.current && (roomData?.id || roomData?._id)) {
-         socket.emit("mark_seen", { 
-           roomId: String(roomData.id || roomData._id), 
-           messageId: msg._id, 
-           userId: profileRef.current.id || profileRef.current._id 
-         });
+        socket.emit("mark_seen", {
+          roomId: String(roomData.id || roomData._id),
+          messageId: msg._id,
+          userId: profileRef.current.id || profileRef.current._id,
+        });
       }
     };
 
     const handleUserTyping = ({ username, isTyping }) => {
-      setTypingUsers(prev => {
+      setTypingUsers((prev) => {
         if (isTyping) {
           if (!prev.includes(username)) return [...prev, username];
           return prev;
         }
-        return prev.filter(u => u !== username);
+        return prev.filter((u) => u !== username);
       });
     };
 
@@ -178,7 +181,7 @@ const ActiveRoom = ({ profile }) => {
       socket.emit("typing", {
         roomId: String(realId),
         username: profileRef.current?.username,
-        isTyping
+        isTyping,
       });
     }
   };
@@ -197,7 +200,7 @@ const ActiveRoom = ({ profile }) => {
       socket.emit("join_room", { roomId: roomIdStr, user: currentUser });
     };
 
-   const handleUserJoined = (data) => {
+    const handleUserJoined = (data) => {
       setRoomLogs((prev) => [...prev, { type: "join", text: data.message }]);
 
       const currentMembers = membersRef.current || [];
@@ -210,10 +213,13 @@ const ActiveRoom = ({ profile }) => {
       if (!alreadyExists) {
         const incomingUser = {
           ...data.user,
-          avatar: data.user.avatar || data.user.profile?.avatar || "default-avatar.png",
-          username: data.user.username || data.user.user?.username || "Birisi"
+          avatar:
+            data.user.avatar ||
+            data.user.profile?.avatar ||
+            "default-avatar.png",
+          username: data.user.username || data.user.user?.username || "Birisi",
         };
-        
+
         newMembersList = [...currentMembers, incomingUser];
         setRoomData((prevRoom) =>
           prevRoom ? { ...prevRoom, members: newMembersList } : prevRoom,
@@ -236,7 +242,8 @@ const ActiveRoom = ({ profile }) => {
         return {
           ...prevRoom,
           members: prevRoom.members?.filter(
-            (m) => String(m._id || m.id) !== String(data.user._id || data.user.id),
+            (m) =>
+              String(m._id || m.id) !== String(data.user._id || data.user.id),
           ),
         };
       });
@@ -254,7 +261,7 @@ const ActiveRoom = ({ profile }) => {
     };
   }, [socket, roomData?.id, roomData?._id]);
 
-  // 4. SÜRE DEĞİŞTİĞİNDE OTOMATİK SİNYAL YAYMA 
+  // 4. SÜRE DEĞİŞTİĞİNDE OTOMATİK SİNYAL YAYMA
   useEffect(() => {
     const realRoomId = roomData?.id || roomData?._id;
     if (isOwner && socket && realRoomId && isActive) {
@@ -264,12 +271,12 @@ const ActiveRoom = ({ profile }) => {
           timerData: { timeLeft, isActive, selectedMinutes },
           activeMembers: membersRef.current,
         });
-      }, 5000); 
+      }, 5000);
       return () => clearInterval(syncInterval);
     }
-  }, [isActive, timeLeft, isOwner, selectedMinutes]); 
+  }, [isActive, timeLeft, isOwner, selectedMinutes]);
 
-  // 5. ÜYELERİN SİNYALİ DİNLEME 
+  // 5. ÜYELERİN SİNYALİ DİNLEME
   useEffect(() => {
     if (!socket || isOwner) return;
     const handleTimerUpdate = (data) => {
@@ -296,7 +303,11 @@ const ActiveRoom = ({ profile }) => {
     if (isOwner && socket && roomData) {
       socket.emit("sync_timer", {
         roomId: String(roomData.id || roomData._id),
-        timerData: { timeLeft: selectedMinutes * 60, isActive: false, selectedMinutes },
+        timerData: {
+          timeLeft: selectedMinutes * 60,
+          isActive: false,
+          selectedMinutes,
+        },
         activeMembers: membersRef.current,
       });
     }
@@ -307,7 +318,11 @@ const ActiveRoom = ({ profile }) => {
     if (isOwner && socket && roomData) {
       socket.emit("sync_timer", {
         roomId: String(roomData.id || roomData._id),
-        timerData: { timeLeft: min * 60, isActive: false, selectedMinutes: min },
+        timerData: {
+          timeLeft: min * 60,
+          isActive: false,
+          selectedMinutes: min,
+        },
         activeMembers: membersRef.current,
       });
     }
@@ -337,7 +352,9 @@ const ActiveRoom = ({ profile }) => {
 
   const handleDeleteRoom = async () => {
     if (!roomData) return;
-    if (window.confirm("Bu odayı kalıcı olarak silmek istediğine emin misin?")) {
+    if (
+      window.confirm("Bu odayı kalıcı olarak silmek istediğine emin misin?")
+    ) {
       try {
         setIsLeaving(true);
         await RoomService.deleteRoom(roomData.id || roomData._id);
@@ -363,8 +380,8 @@ const ActiveRoom = ({ profile }) => {
   const handleInvite = async (friendId) => {
     try {
       const realRoomId = roomData?.id || roomData?._id;
-      await RoomService.inviteUser(realRoomId, friendId); 
-      setInvitedUsers(prev => [...prev, friendId]);
+      await RoomService.inviteUser(realRoomId, friendId);
+      setInvitedUsers((prev) => [...prev, friendId]);
     } catch (error) {
       console.error("Davet gönderilemedi", error);
     }
@@ -372,7 +389,9 @@ const ActiveRoom = ({ profile }) => {
 
   const formatTime = (seconds) => {
     if (isNaN(seconds) || seconds < 0) seconds = 0;
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
@@ -401,8 +420,10 @@ const ActiveRoom = ({ profile }) => {
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-[#0f121a] w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden border border-slate-800 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center p-5 border-b border-slate-800">
-              <h3 className="font-black text-white text-lg tracking-tight">Odaya Davet Et</h3>
-              <button 
+              <h3 className="font-black text-white text-lg tracking-tight">
+                Odaya Davet Et
+              </h3>
+              <button
                 onClick={() => setIsInviteModalOpen(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:bg-rose-500 hover:text-white transition-colors"
               >
@@ -412,20 +433,36 @@ const ActiveRoom = ({ profile }) => {
             <div className="p-2 max-h-[60vh] overflow-y-auto custom-scrollbar">
               {friendsList.length > 0 ? (
                 friendsList.map((friend) => (
-                  <div key={friend.userId} className="flex items-center justify-between p-3 hover:bg-slate-800/50 rounded-2xl transition-colors">
+                  <div
+                    key={friend.userId}
+                    className="flex items-center justify-between p-3 hover:bg-slate-800/50 rounded-2xl transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
-                        {friend.avatar && friend.avatar !== "default-avatar.png" ? (
-                          <img src={friend.avatar.startsWith('http') ? friend.avatar : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${friend.avatar}`} className="w-full h-full object-cover" alt="" />
+                        {friend.avatar &&
+                        friend.avatar !== "default-avatar.png" ? (
+                          <img
+                            src={
+                              friend.avatar.startsWith("http")
+                                ? friend.avatar
+                                : `https://pomodoro-app-omxg.onrender.com/public/uploads/avatars/${friend.avatar}`
+                            }
+                            className="w-full h-full object-cover"
+                            alt=""
+                          />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center font-bold text-slate-500">{friend.username[0].toUpperCase()}</div>
+                          <div className="w-full h-full flex items-center justify-center font-bold text-slate-500">
+                            {friend.username[0].toUpperCase()}
+                          </div>
                         )}
                       </div>
                       <div>
-                        <p className="font-bold text-sm text-white">@{friend.username}</p>
+                        <p className="font-bold text-sm text-white">
+                          @{friend.username}
+                        </p>
                       </div>
                     </div>
-                    <button 
+                    <button
                       onClick={() => handleInvite(friend.userId)}
                       disabled={invitedUsers.includes(friend.userId)}
                       className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -434,14 +471,18 @@ const ActiveRoom = ({ profile }) => {
                           : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg"
                       }`}
                     >
-                      {invitedUsers.includes(friend.userId) ? "Davet Edildi ✓" : "Davet Et"}
+                      {invitedUsers.includes(friend.userId)
+                        ? "Davet Edildi ✓"
+                        : "Davet Et"}
                     </button>
                   </div>
                 ))
               ) : (
                 <div className="py-10 text-center">
                   <span className="text-4xl mb-3 opacity-50 block">👥</span>
-                  <p className="text-sm font-bold text-slate-500 mt-2">Henüz kimseyi takip etmiyorsun.</p>
+                  <p className="text-sm font-bold text-slate-500 mt-2">
+                    Henüz kimseyi takip etmiyorsun.
+                  </p>
                 </div>
               )}
             </div>
@@ -457,8 +498,18 @@ const ActiveRoom = ({ profile }) => {
               onClick={handleLeaveRoom}
               className="p-1.5 md:p-2 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors"
             >
-              <svg className="w-5 h-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              <svg
+                className="w-5 h-5 text-slate-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
               </svg>
             </button>
             <div>
@@ -494,7 +545,6 @@ const ActiveRoom = ({ profile }) => {
       </header>
 
       <div className="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden custom-scrollbar">
-        
         {/* MERKEZ (SAYAÇ) */}
         <div className="flex-1 flex flex-col items-center justify-center relative bg-[#0b0e14] order-1 md:order-2 py-8 md:py-0 shrink-0 min-h-[450px] md:min-h-0 border-b md:border-b-0 border-slate-800/60">
           <div
@@ -520,13 +570,40 @@ const ActiveRoom = ({ profile }) => {
             <div
               className={`relative w-[280px] h-[280px] md:w-[420px] md:h-[420px] flex items-center justify-center ${!isOwner && !isActive ? "mt-6 md:mt-16" : ""}`}
             >
-              <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 450 450">
-                <circle cx="225" cy="225" r={radius} fill="transparent" stroke="currentColor" strokeWidth="8" className="text-slate-800/20"/>
-                <circle cx="225" cy="225" r={radius} fill="transparent" stroke="currentColor" strokeWidth="12" strokeDasharray={circumference} style={{ strokeDashoffset, transition: "stroke-dashoffset 1s linear" }} strokeLinecap="round" className={`${isActive ? "text-orange-500" : "text-indigo-600"} drop-shadow-[0_0_8px_rgba(79,70,229,0.3)]`}/>
+              <svg
+                className="absolute inset-0 w-full h-full -rotate-90"
+                viewBox="0 0 450 450"
+              >
+                <circle
+                  cx="225"
+                  cy="225"
+                  r={radius}
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  className="text-slate-800/20"
+                />
+                <circle
+                  cx="225"
+                  cy="225"
+                  r={radius}
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  strokeDasharray={circumference}
+                  style={{
+                    strokeDashoffset,
+                    transition: "stroke-dashoffset 1s linear",
+                  }}
+                  strokeLinecap="round"
+                  className={`${isActive ? "text-orange-500" : "text-indigo-600"} drop-shadow-[0_0_8px_rgba(79,70,229,0.3)]`}
+                />
               </svg>
 
               <div className="w-[230px] h-[230px] md:w-[340px] md:h-[340px] rounded-full bg-[#0f121a] flex flex-col items-center justify-center shadow-[inset_0_0_40px_rgba(0,0,0,0.5)] border border-slate-800/50">
-                <span className={`text-[60px] md:text-[90px] font-black tracking-tighter transition-all duration-500 ${isActive ? "text-orange-400 scale-110" : "text-white"}`}>
+                <span
+                  className={`text-[60px] md:text-[90px] font-black tracking-tighter transition-all duration-500 ${isActive ? "text-orange-400 scale-110" : "text-white"}`}
+                >
                   {formatTime(timeLeft)}
                 </span>
                 <div className="h-px w-10 md:w-12 bg-slate-800 my-1 md:my-2"></div>
@@ -548,8 +625,18 @@ const ActiveRoom = ({ profile }) => {
                   onClick={handleRoomReset}
                   className="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 text-white rounded-full transition-all border border-slate-700 shadow-lg shrink-0"
                 >
-                  <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  <svg
+                    className="w-5 h-5 md:w-6 md:h-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
                   </svg>
                 </button>
               </div>
@@ -557,7 +644,9 @@ const ActiveRoom = ({ profile }) => {
               <div className="mt-8 md:mt-12 text-center px-4">
                 <div className="inline-block bg-slate-800/40 border border-slate-700/50 px-4 md:px-6 py-3 md:py-4 rounded-2xl">
                   <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
-                    SAYACI SADECE <span className="text-orange-400">ODA SAHİBİ</span> KONTROL EDEBİLİR
+                    SAYACI SADECE{" "}
+                    <span className="text-orange-400">ODA SAHİBİ</span> KONTROL
+                    EDEBİLİR
                   </p>
                 </div>
               </div>
@@ -573,19 +662,26 @@ const ActiveRoom = ({ profile }) => {
                 ŞU AN ODADAKİLER
               </h3>
               {/* 🔥 DAVET ET BUTONU BURADA 🔥 */}
-              <button 
+              <button
                 onClick={openInviteModal}
                 className="text-[10px] font-black bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded-md transition-colors flex items-center gap-1"
               >
                 <span>+</span> DAVET ET
               </button>
             </div>
-            
+
             <div className="space-y-4 md:space-y-5">
               {roomData.members?.map((m, i) => (
-                <div key={i} className="flex items-center gap-3 group animate-fade-in-up">
+                <div
+                  key={i}
+                  className="flex items-center gap-3 group animate-fade-in-up"
+                >
                   {m.avatar ? (
-                    <img src={m.avatar} alt="avatar" className="w-8 h-8 md:w-9 md:h-9 rounded-xl object-cover border border-slate-700 group-hover:border-indigo-500 transition-colors shadow-lg" />
+                    <img
+                      src={m.avatar}
+                      alt="avatar"
+                      className="w-8 h-8 md:w-9 md:h-9 rounded-xl object-cover border border-slate-700 group-hover:border-indigo-500 transition-colors shadow-lg"
+                    />
                   ) : (
                     <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-black group-hover:border-indigo-500 transition-colors shadow-lg">
                       {(m.username || "U").charAt(0).toUpperCase()}
@@ -594,7 +690,8 @@ const ActiveRoom = ({ profile }) => {
                   <div className="flex flex-col">
                     <span className="text-xs md:text-sm font-black text-slate-200 uppercase tracking-tighter">
                       @{m.username || "Kullanıcı"}
-                      {String(m._id || m.id) === String(roomData.owner?._id || roomData.owner) && (
+                      {String(m._id || m.id) ===
+                        String(roomData.owner?._id || roomData.owner) && (
                         <span className="ml-2 text-[8px] text-orange-400 font-bold bg-orange-500/10 px-1.5 py-0.5 rounded border border-orange-500/20">
                           KURUCU
                         </span>
@@ -608,13 +705,13 @@ const ActiveRoom = ({ profile }) => {
               ))}
             </div>
           </div>
-          
+
           <div className="flex-1 bg-[#0a0d13]/50 p-3 md:p-4 flex flex-col justify-end min-h-[300px]">
             <div className="flex-1 bg-[#0a0d13]/50 flex flex-col overflow-hidden">
-              <ChatBox 
-                messages={messages} 
+              <ChatBox
+                messages={messages}
                 currentUser={profile}
-                onSendMessage={handleSendMessage} 
+                onSendMessage={handleSendMessage}
                 onTyping={handleTyping}
                 typingUsers={typingUsers}
               />
