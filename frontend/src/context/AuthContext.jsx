@@ -18,7 +18,8 @@ export function AuthProvider({ children }) {
   const fetchProfile = async () => {
     try {
       const response = await ProfileService.getMe();
-      setProfile(response.data); 
+      console.log("🔥 API'den Gelen Profil:", response.data);
+      setProfile(response.data?.data || response.data);
     } catch (error) {
       console.log("Oturum süresi dolmuş veya giriş yapılmamış.");
       localStorage.removeItem('token');
