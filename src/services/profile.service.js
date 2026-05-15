@@ -40,16 +40,13 @@ class ProfileService {
     if (!profile) throw new BadRequestException("Profil bulunamadı!");
 
     let isBlockedByMe = false;
-    //(Bakan kişi giriş yapmışsa ve kendi profili değilse çalışır)
     if (currentUserId && String(currentUserId) !== String(targetUserId)) {
-      //  Karşı taraf beni engellemiş mi?
       const isBlockedByTarget = profile.blockedUsers?.some(
         (id) => String(id) === String(currentUserId)
       );
       if (isBlockedByTarget) {
         throw new UnauthorizedException("Bu profil bulunamadı veya bu kullanıcı sizi engelledi.");
       }
-      // Ben onu engellemiş miyim?
       const currentUserProfile = await this.profileRepository.findByUserId(currentUserId);
       isBlockedByMe = currentUserProfile?.blockedUsers?.some(
         (id) => String(id) === String(targetUserId)

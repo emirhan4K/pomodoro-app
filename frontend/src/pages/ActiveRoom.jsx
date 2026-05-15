@@ -197,16 +197,24 @@ const ActiveRoom = ({ profile }) => {
       socket.emit("join_room", { roomId: roomIdStr, user: currentUser });
     };
 
-    const handleUserJoined = (data) => {
+   const handleUserJoined = (data) => {
       setRoomLogs((prev) => [...prev, { type: "join", text: data.message }]);
+
       const currentMembers = membersRef.current || [];
       const alreadyExists = currentMembers.some(
         (m) => String(m._id || m.id) === String(data.user._id || data.user.id),
       );
 
       let newMembersList = currentMembers;
+
       if (!alreadyExists) {
-        newMembersList = [...currentMembers, data.user];
+        const incomingUser = {
+          ...data.user,
+          avatar: data.user.avatar || data.user.profile?.avatar || "default-avatar.png",
+          username: data.user.username || data.user.user?.username || "Birisi"
+        };
+        
+        newMembersList = [...currentMembers, incomingUser];
         setRoomData((prevRoom) =>
           prevRoom ? { ...prevRoom, members: newMembersList } : prevRoom,
         );
