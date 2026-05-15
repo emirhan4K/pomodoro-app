@@ -18,6 +18,7 @@ router.post(
     roomController.createRoom
 );
 router.get("/:slug", roomController.getRoomBySlug);
+router.post("/:roomId/invite",roomController.inviteUser);
 router.get("/:roomId/messages", roomController.getRoomMessages);
 router.post("/:roomId/join", roomController.joinRoom);
 router.post("/:roomId/leave", roomController.leaveRoom);

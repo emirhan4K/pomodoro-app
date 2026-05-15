@@ -7,9 +7,11 @@ const path = require("path");
 const slugify = require("slugify");
 
 class RoomService {
-  constructor({ roomRepository, userRepository }) {
+  constructor({ roomRepository, userRepository,notificationService,profileRepository }) {
     this.roomRepository = roomRepository;
     this.userRepository = userRepository;
+    this.notificationService = notificationService;
+    this.profileRepository = profileRepository;
   }
   async createRoom(userId, roomData) {
     if (!roomData) roomData = {};
@@ -136,6 +138,24 @@ class RoomService {
     await this.roomRepository.deleteRoomById(roomId);
     
     return { success: true, message: "Oda başarıyla silindi." };
+  }
+  async inviteUserToRoom(currentUserId, targetUserId, roomId){
+    const room = await this.roomRepository.findById(roomId);
+    if(!room){
+      throw new BadRequestException("Oda bulunamadı!")
+    }
+    const currentUser = await this.profileRepository.findByUserId(currentUserId);
+    const inviterName = currentUser?.user?.username || currentUser?.username || "Bir arkadaşın";
+    const inviterAvatar = currentUser?.avatar || "default-avatar.png";
+    await this.notificationService.createNotification({
+      recipient: targetUserId,
+      sender: currentUserId,
+      type: "ROOM_INVITE",
+      content: `@${inviterName} seni '${room.name || "Odaklan"}' odasına davet ediyor!`,
+      avatar: inviterAvatar,
+      roomId: roomId 
+    });
+    return { success: true, message: "Davet başarıyla gönderildi!" };
   }
 }
 

@@ -117,6 +117,20 @@ class RoomController {
     res.status(500).json({ success: false, message: "Hata oluştu" });
   }
   }
+  inviteUser = async(req,res,next) => {
+    try {
+      const currentUserId = req.user._id || req.user.id; 
+      const { roomId } = req.params;
+      const { targetUserId } = req.body;
+      if (!targetUserId) {
+        return res.status(400).json({ message: "Lütfen davet edilecek bir kullanıcı seçin!" });
+      }
+      const result = await this.roomService.inviteUserToRoom(currentUserId, targetUserId, roomId);
+      res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = RoomController;

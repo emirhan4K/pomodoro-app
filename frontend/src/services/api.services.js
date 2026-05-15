@@ -52,6 +52,7 @@ export const RoomService = {
     const response = await api.get(`/rooms/${slug}`);
     return response.data;
   },
+  inviteUser: (roomId, targetUserId) => api.post(`/rooms/${roomId}/invite`, { targetUserId }),
   getRoomMessages: async (roomId) => {
     try {
       const response = await api.get(`/rooms/${roomId}/messages`);

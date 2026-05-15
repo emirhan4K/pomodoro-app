@@ -10,6 +10,7 @@ class NotificationMapper {
       content: notification.content,
       isRead: notification.isRead,
       avatar: notification.avatar,
+      roomId: notification.roomId,
       createdAt: notification.createdAt,
     };
   }
