@@ -20,6 +20,7 @@ class FollowService {
       currentUserId,
       targetUserId,
     );
+    const followerName = currentUser?.username || currentUser?.user?.username || "Biri";  
     await this.notificationService.createNotification({
       recipient: targetUserId,
       sender: currentUserId,

@@ -27,18 +27,14 @@ class NotificationService {
     const notifications = await this.notificationRepository.find({ recipient: userId });
     return NotificationMapper.toDtoList(notifications.reverse());
   }
- async markAsRead(userId, notificationId) {
-    const targetId = notificationId ? notificationId : userId;
-    const notification = await this.notificationRepository.findOne({ 
-      _id: targetId 
-    });
-
-    if (!notification) {
-      throw new BadRequestException("Bildirim bulunamadı!");
-    }
-    const updatedNotification = await this.notificationRepository.update(targetId, { 
+ async markAsRead(notificationId) {
+    const updatedNotification = await this.notificationRepository.update(notificationId, { 
       isRead: true 
     });
+
+    if (!updatedNotification) {
+      throw new BadRequestException("Bildirim bulunamadı veya güncellenemedi!");
+    }
 
     return NotificationMapper.toDto(updatedNotification);
   }

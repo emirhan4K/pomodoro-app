@@ -14,11 +14,10 @@ class NotificationController {
   };
   markAsRead = async (req, res, next) => {
     try {
-      const userId = req.user.id;
       const notificationId = req.params.id;
       const result =
-        await this.notificationService.markAsRead(notificationId, userId);
-      res.status(200).json(result);
+        await this.notificationService.markAsRead(notificationId);
+      res.status(200).json({success: true, data: result});
     } catch (error) {
       next(error);
     }
