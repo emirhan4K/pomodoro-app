@@ -151,9 +151,10 @@ class RoomService {
       recipient: targetUserId,
       sender: currentUserId,
       type: "ROOM_INVITE",
-      content: `@${inviterName} seni '${room.name || "Odaklan"}' odasına davet ediyor!`,
+      content: `@${inviterName} seni '${room.roomName || "Odaklan"}' odasına davet ediyor!`,
       avatar: inviterAvatar,
-      roomId: roomId 
+      roomId: roomId,
+      roomSlug: room.slug
     });
     return { success: true, message: "Davet başarıyla gönderildi!" };
   }

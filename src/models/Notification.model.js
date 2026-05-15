@@ -32,6 +32,9 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Room"
     },
+    roomSlug: {
+      type: String
+    },
   },
   { timestamps: true },
 );
