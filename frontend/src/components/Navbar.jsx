@@ -90,9 +90,9 @@ const Navbar = () => {
 
   const handleMarkAllAsRead = async () => {
     try {
-       await NotificationService.markAllAsRead(); 
-       // Tüm bildirimleri okundu yap (Bu sayede unreadNotifications filtresine takılıp ekrandan kaybolurlar)
-       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      await NotificationService.markAllAsRead();
+      // Tüm bildirimleri okundu yap (Bu sayede unreadNotifications filtresine takılıp ekrandan kaybolurlar)
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch (error) {
       console.error("Tümünü oku hatası:", error);
     }
@@ -103,7 +103,6 @@ const Navbar = () => {
     if (!notif.isRead) {
       try {
         await NotificationService.markAsRead(notif.id);
-        // Bildirimi anında okundu yapıp (filtrelenip silinmesini) sağlıyoruz
         setNotifications((prev) =>
           prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)),
         );
@@ -111,8 +110,42 @@ const Navbar = () => {
         console.error("Bildirim okunamadı", error);
       }
     }
-    // Sadece menüyü kapatıyoruz, navigate satırlarını sildik!
-    setIsNotifDropdownOpen(false); 
+    setIsNotifDropdownOpen(false);
+    if (notif.type === "FRIEND_REQUEST" || notif.content.includes("takip etti")) {
+      navigate("/profile?tab=friends");
+    } else if (notif.type === "LEVEL_UP") {
+      navigate("/profile?tab=stats");
+    } else {
+      navigate("/profile"); 
+    }
+  };
+
+  // DAVET KABUL ET
+  const handleAcceptInvite = async (e, notif) => {
+    e.stopPropagation(); 
+    try {
+      await NotificationService.markAsRead(notif.id);
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)));
+      setIsNotifDropdownOpen(false);
+      if (notif.roomSlug) {
+        navigate(`/room/${notif.roomSlug}`);
+      } else {
+        navigate("/rooms"); 
+      }
+    } catch (error) {
+      console.error("Kabul etme hatası", error);
+    }
+  };
+
+  // DAVET REDDET
+  const handleRejectInvite = async (e, notif) => {
+    e.stopPropagation(); 
+    try {
+      await NotificationService.markAsRead(notif.id);
+      setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n)));
+    } catch (error) {
+      console.error("Reddetme hatası", error);
+    }
   };
 
   // Arama butonu tıklandığında inputa odaklan
@@ -309,7 +342,6 @@ const Navbar = () => {
           {/* Bildirimler Dropdown Paneli */}
           {isNotifDropdownOpen && (
             <div className="absolute top-14 right-0 w-80 sm:w-96 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top-right flex flex-col max-h-[400px]">
-              
               {/* BİLDİRİM BAŞLIĞI VE TÜMÜNÜ OKU BUTONU */}
               <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
                 <div className="flex items-center gap-2">
@@ -323,7 +355,7 @@ const Navbar = () => {
                   )}
                 </div>
                 {unreadCount > 0 && (
-                  <button 
+                  <button
                     onClick={handleMarkAllAsRead}
                     className="text-[10px] font-black text-indigo-500 hover:text-indigo-600 transition-colors uppercase tracking-tighter"
                   >
@@ -343,7 +375,8 @@ const Navbar = () => {
                     >
                       {/* 🔥 AVATAR KONTROLÜ BURADA YAPILDI 🔥 */}
                       <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-[#1e293b] flex items-center justify-center flex-shrink-0 shadow-inner overflow-hidden border border-slate-300 dark:border-slate-600">
-                        {notif.avatar && notif.avatar !== "default-avatar.png" ? (
+                        {notif.avatar &&
+                        notif.avatar !== "default-avatar.png" ? (
                           <img
                             src={
                               notif.avatar.startsWith("http")
@@ -361,6 +394,23 @@ const Navbar = () => {
                         <p className="text-sm leading-tight break-words text-slate-800 dark:text-slate-200 font-bold">
                           {notif.content}
                         </p>
+                        {/* 🔥 EĞER TİP DAVET İSE BUTONLARI GÖSTER 🔥 */}
+                        {notif.type === "ROOM_INVITE" && (
+                          <div className="flex items-center gap-2 mt-2.5">
+                            <button
+                              onClick={(e) => handleAcceptInvite(e, notif)}
+                              className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/20 text-emerald-500 hover:text-white rounded-lg text-[10px] font-black tracking-widest transition-all shadow-sm"
+                            >
+                              KABUL ET
+                            </button>
+                            <button
+                              onClick={(e) => handleRejectInvite(e, notif)}
+                              className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500 border border-rose-500/20 text-rose-500 hover:text-white rounded-lg text-[10px] font-black tracking-widest transition-all shadow-sm"
+                            >
+                              REDDET
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full flex-shrink-0 mt-1.5 shadow-md shadow-indigo-500/50"></div>
                     </div>
