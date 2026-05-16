@@ -20,7 +20,8 @@ class RoomMapper {
                 if (member && typeof member === 'object') {
                     return {
                         id: member._id ? member._id.toString() : (member.id || member),
-                        username: member.username || member.name || "Kullanıcı"
+                        username: member.username || member.name || "Kullanıcı",
+                        avatar: member.avatar || "default-avatar.png"
                     };
                 }
                 return member ? member.toString() : null;
