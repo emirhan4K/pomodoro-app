@@ -73,6 +73,7 @@ const ActiveRoom = ({ profile }) => {
     totalSeconds > 0 ? (totalSeconds - timeLeft) / totalSeconds : 0;
   const strokeDashoffset = circumference - progress * circumference;
 
+  // 1. Odayı ve Geçmiş Mesajları API'den Çekme
   useEffect(() => {
     if (!profile || (!profile._id && !profile.id)) return;
 
@@ -81,11 +82,8 @@ const ActiveRoom = ({ profile }) => {
         const response = await RoomService.getRoomBySlug(roomSlug);
         let data = response?.room || response?.data || response;
         if (profile && data.members) {
-          const myAvatar =
-            profile.avatar ||
-            profile.profile?.avatar ||
-            "default-avatar.png";
-
+          const myAvatar = profile.avatar || profile.profile?.avatar || "default-avatar.png";
+          const myUsername = profile.username || profile.user?.username || "Kullanıcı";
           const myIndex = data.members.findIndex(
             (m) =>
               String(m._id || m.id) ===
@@ -95,12 +93,15 @@ const ActiveRoom = ({ profile }) => {
           if (myIndex === -1) {
             data.members = [
               ...data.members,
-              { ...profile, avatar: myAvatar },
+              // 🔥 ANTI-HAYALET 1: Eksik username'i de objeye ekledik
+              { ...profile, avatar: myAvatar, username: myUsername },
             ];
           } else {
             data.members[myIndex] = {
               ...data.members[myIndex],
+              ...profile,
               avatar: myAvatar || data.members[myIndex].avatar,
+              username: myUsername || data.members[myIndex].username,
             };
           }
         }
@@ -192,12 +193,18 @@ const ActiveRoom = ({ profile }) => {
     if (!socket || !realRoomId) return;
 
     const roomIdStr = String(realRoomId);
-    const currentUser = profileRef.current;
+    
+    // 🔥 ANTI-HAYALET 2: Socket'e bomboş profil gitmesin diye "Garanti Zarf" hazırlıyoruz
+    const safeCurrentUser = {
+      ...profileRef.current,
+      avatar: profileRef.current?.avatar || profileRef.current?.profile?.avatar || "default-avatar.png",
+      username: profileRef.current?.username || profileRef.current?.user?.username || "Kullanıcı"
+    };
 
-    socket.emit("join_room", { roomId: roomIdStr, user: currentUser });
+    socket.emit("join_room", { roomId: roomIdStr, user: safeCurrentUser });
 
     const handleReconnect = () => {
-      socket.emit("join_room", { roomId: roomIdStr, user: currentUser });
+      socket.emit("join_room", { roomId: roomIdStr, user: safeCurrentUser });
     };
 
     const handleUserJoined = (data) => {
@@ -211,13 +218,14 @@ const ActiveRoom = ({ profile }) => {
       let newMembersList = currentMembers;
 
       if (!alreadyExists) {
+        // 🔥 ANTI-HAYALET 3: Karşıdan gelen profil eksikse onu da zorla giydiriyoruz
         const incomingUser = {
           ...data.user,
           avatar:
-            data.user.avatar ||
-            data.user.profile?.avatar ||
+            data.user?.avatar ||
+            data.user?.profile?.avatar ||
             "default-avatar.png",
-          username: data.user.username || data.user.user?.username || "Birisi",
+          username: data.user?.username || data.user?.user?.username || "Birisi",
         };
 
         newMembersList = [...currentMembers, incomingUser];
@@ -254,7 +262,7 @@ const ActiveRoom = ({ profile }) => {
     socket.on("user_left", handleUserLeft);
 
     return () => {
-      socket.emit("leave_room", { roomId: roomIdStr, user: currentUser });
+      socket.emit("leave_room", { roomId: roomIdStr, user: safeCurrentUser });
       socket.off("connect", handleReconnect);
       socket.off("user_joined", handleUserJoined);
       socket.off("user_left", handleUserLeft);
