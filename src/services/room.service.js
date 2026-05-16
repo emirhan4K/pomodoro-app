@@ -49,23 +49,32 @@ class RoomService {
     if (!room) {
       throw new BadRequestException("Böyle bir oda bulunamadı!");
     }
+    
     const roomObj = room.toObject ? room.toObject() : room;
+    
     const Profile = require("../models/Profile.model"); 
+    const User = require("../models/User.model");
     
     if (roomObj.members && roomObj.members.length > 0) {
       roomObj.members = await Promise.all(
         roomObj.members.map(async (member) => {
-           const memberId = member._id || member.id || member;
+           const memberId = member._id ? member._id.toString() : member.toString();
            const profile = await Profile.findOne({ user: memberId });     
+           const userDoc = await User.findById(memberId);
+
            return {
-              ...(typeof member === 'object' ? member : { _id: memberId }),
+              _id: memberId,
+              id: memberId,
               avatar: profile?.avatar || "default-avatar.png",
-              username: profile?.username || profile?.user?.username || member.username || "Kullanıcı"
+              username: userDoc?.username || "Kullanıcı"
            };
         })
       );
     }
-    return RoomMapper.toDTO(roomObj);
+    const mappedRoom = RoomMapper.toDTO(roomObj);
+    mappedRoom.members = roomObj.members; 
+    
+    return mappedRoom;
   }
   async joinRoom(userId, roomId, password) {
     const room = await this.roomRepository.findByIdWithPassword(roomId);
@@ -152,14 +161,18 @@ class RoomService {
     
     return { success: true, message: "Oda başarıyla silindi." };
   }
-  async inviteUserToRoom(currentUserId, targetUserId, roomId){
+ async inviteUserToRoom(currentUserId, targetUserId, roomId){
     const room = await this.roomRepository.findById(roomId);
     if(!room){
       throw new BadRequestException("Oda bulunamadı!")
     }
-    const currentUser = await this.profileRepository.findByUserId(currentUserId);
-    const inviterName = currentUser?.user?.username || currentUser?.username || "Bir arkadaşın";
-    const inviterAvatar = currentUser?.avatar || "default-avatar.png";
+    const currentUserProfile = await this.profileRepository.findByUserId(currentUserId);
+    const User = require("../models/User.model");
+    const userDoc = await User.findById(currentUserId);
+
+    const inviterName = userDoc?.username || "Bir arkadaşın";
+    const inviterAvatar = currentUserProfile?.avatar || "default-avatar.png";
+
     await this.notificationService.createNotification({
       recipient: targetUserId,
       sender: currentUserId,
