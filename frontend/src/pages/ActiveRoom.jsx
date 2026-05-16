@@ -247,11 +247,17 @@ const ActiveRoom = ({ profile }) => {
       setRoomLogs((prev) => [...prev, { type: "leave", text: data.message }]);
       setRoomData((prevRoom) => {
         if (!prevRoom) return prevRoom;
+        const myId = profileRef.current?._id || profileRef.current?.id;
+        const leftUserId = data.user?._id || data.user?.id;
+        
+        if (String(myId) === String(leftUserId)) {
+          return prevRoom; 
+        }
+
         return {
           ...prevRoom,
           members: prevRoom.members?.filter(
-            (m) =>
-              String(m._id || m.id) !== String(data.user._id || data.user.id),
+            (m) => String(m._id || m.id) !== String(leftUserId),
           ),
         };
       });
@@ -293,10 +299,39 @@ const ActiveRoom = ({ profile }) => {
         setIsActive(data.timerData.isActive);
         setSelectedMinutes(data.timerData.selectedMinutes);
       }
+      
       if (data.activeMembers) {
         setRoomData((prev) => {
           if (!prev) return prev;
-          return { ...prev, members: data.activeMembers };
+
+          let updatedMembers = [...data.activeMembers];
+          const myId = profileRef.current?.id || profileRef.current?._id;
+
+          // 🔥 ÖLÜMSÜZLÜK 2: Kurucunun listesinde yoksam (F5 kazası yüzünden beni sildiyse)
+          if (myId) {
+            const amIPresent = updatedMembers.some(m => String(m._id || m.id) === String(myId));
+            
+            // Yoksam, kendimi zorla listeye ekliyorum!
+            if (!amIPresent) {
+              const myAvatar = profileRef.current?.avatar || profileRef.current?.profile?.avatar || "default-avatar.png";
+              const myUsername = profileRef.current?.username || profileRef.current?.user?.username || "Kullanıcı";
+              
+              updatedMembers.push({
+                ...profileRef.current,
+                avatar: myAvatar,
+                username: myUsername
+              });
+
+              // Ve kurucuya arkadan sessizce "Ben buradayım, listeni düzelt" diyorum
+              const realRoomId = prev.id || prev._id;
+              socket.emit("join_room", { 
+                roomId: String(realRoomId), 
+                user: { ...profileRef.current, avatar: myAvatar, username: myUsername } 
+              });
+            }
+          }
+
+          return { ...prev, members: updatedMembers };
         });
       }
     };
