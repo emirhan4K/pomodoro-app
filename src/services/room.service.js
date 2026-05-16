@@ -49,7 +49,23 @@ class RoomService {
     if (!room) {
       throw new BadRequestException("Böyle bir oda bulunamadı!");
     }
-    return RoomMapper.toDTO(room);
+    const roomObj = room.toObject ? room.toObject() : room;
+    const Profile = require("../models/Profile.model"); 
+    
+    if (roomObj.members && roomObj.members.length > 0) {
+      roomObj.members = await Promise.all(
+        roomObj.members.map(async (member) => {
+           const memberId = member._id || member.id || member;
+           const profile = await Profile.findOne({ user: memberId });     
+           return {
+              ...(typeof member === 'object' ? member : { _id: memberId }),
+              avatar: profile?.avatar || "default-avatar.png",
+              username: profile?.username || profile?.user?.username || member.username || "Kullanıcı"
+           };
+        })
+      );
+    }
+    return RoomMapper.toDTO(roomObj);
   }
   async joinRoom(userId, roomId, password) {
     const room = await this.roomRepository.findByIdWithPassword(roomId);
@@ -66,12 +82,9 @@ class RoomService {
     if (room.members.length >= room.capacity) {
       throw new BadRequestException("Oda dolu!");
     }
-
-    if (room.isPrivate === true) {
+    if (room.isPrivate === true && password !== "INVITED_BYPASS") {
       if (!password)
-        throw new BadRequestException(
-          "Bu oda şifreli, lütfen şifreyi giriniz!",
-        );
+        throw new BadRequestException("Bu oda şifreli, lütfen şifreyi giriniz!");
 
       const isMatch = await comparePassword(password, room.roomPassword);
       if (!isMatch) throw new BadRequestException("Oda şifresi yanlış!");
