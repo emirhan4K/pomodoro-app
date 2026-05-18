@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { usePomodoro } from "../context/PomodoroContext";
@@ -21,6 +21,34 @@ const Dashboard = ({ profile, onComplete, notificationCount }) => {
 
   const navigate = useNavigate();
 
+  const [isCustomOpen, setIsCustomOpen] = useState(false);
+  const [customHours, setCustomHours] = useState("");
+  const [customMinutes, setCustomMinutes] = useState("");
+  const [customError, setCustomError] = useState("");
+
+  const handleIntegerInput = (setter) => (e) => {
+    setter(e.target.value.replace(/[^0-9]/g, ""));
+    setCustomError("");
+  };
+
+  const handleApplyCustomTime = () => {
+    const hours = parseInt(customHours || "0", 10);
+    const minutes = parseInt(customMinutes || "0", 10);
+    const total = hours * 60 + minutes;
+
+    if (!Number.isFinite(total) || total <= 0) {
+      setCustomError("Lütfen geçerli bir süre girin.");
+      return;
+    }
+    if (total > 600) {
+      setCustomError("Maksimum 10 saat girebilirsiniz.");
+      return;
+    }
+
+    handleDurationSelect(total);
+    setIsCustomOpen(false);
+  };
+
   const radius = 120;
   const circumference = 2 * Math.PI * radius;
   const progress =
@@ -33,19 +61,19 @@ const Dashboard = ({ profile, onComplete, notificationCount }) => {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const durations = [1, 30, 45, 60, 90];
+  const durations = [1, 30, 45, 60];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#0f111a] text-slate-800 dark:text-white transition-colors duration-500 pb-20 font-sans">
       <div className="max-w-7xl mx-auto px-4">
         <Navbar profile={profile} notificationCount={notificationCount} />
         <div className="flex flex-col items-center justify-center mt-12 mb-20">
-          <div className="flex items-center gap-1 sm:gap-2 mb-10 p-1.5 bg-white/50 dark:bg-[#151925]/80 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-inner">
+          <div className="flex items-center gap-0.5 sm:gap-2 mb-6 p-1 sm:p-1.5 bg-white/50 dark:bg-[#151925]/80 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-inner max-w-full">
             {durations.map((mins) => (
               <button
                 key={mins}
                 onClick={() => handleDurationSelect(mins)}
-                className={`px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all duration-300 ${
+                className={`px-2 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-sm font-black transition-all duration-300 whitespace-nowrap ${
                   selectedMinutes === mins
                     ? "bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105"
                     : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
@@ -54,7 +82,61 @@ const Dashboard = ({ profile, onComplete, notificationCount }) => {
                 {mins} dk
               </button>
             ))}
+            <button
+              onClick={() => setIsCustomOpen((v) => !v)}
+              className={`px-2 sm:px-5 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-sm font-black transition-all duration-300 flex items-center gap-0.5 sm:gap-1 whitespace-nowrap ${
+                isCustomOpen || !durations.includes(selectedMinutes)
+                  ? "bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.4)] scale-105"
+                  : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/50"
+              }`}
+            >
+              <span>⚙️</span> ÖZEL
+            </button>
           </div>
+
+          {isCustomOpen && (
+            <div className="mb-8 w-full max-w-md bg-white/50 dark:bg-[#151925]/80 border border-slate-200 dark:border-slate-800/80 rounded-2xl p-5 shadow-inner animate-in fade-in slide-in-from-top-2 duration-200">
+              <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-3 text-center">
+                Özel Süre Belirle
+              </p>
+              <div className="flex items-end justify-center gap-3">
+                <div className="flex flex-col items-center">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">Saat</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={customHours}
+                    onChange={handleIntegerInput(setCustomHours)}
+                    placeholder="0"
+                    className="w-20 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl py-2.5 text-lg font-black text-slate-800 dark:text-white outline-none transition-all"
+                  />
+                </div>
+                <span className="text-2xl font-black text-slate-300 dark:text-slate-600 pb-2">:</span>
+                <div className="flex flex-col items-center">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">Dakika</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={customMinutes}
+                    onChange={handleIntegerInput(setCustomMinutes)}
+                    placeholder="0"
+                    className="w-20 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl py-2.5 text-lg font-black text-slate-800 dark:text-white outline-none transition-all"
+                  />
+                </div>
+                <button
+                  onClick={handleApplyCustomTime}
+                  className="ml-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs tracking-widest transition-all shadow-md shadow-indigo-600/30"
+                >
+                  UYGULA
+                </button>
+              </div>
+              {customError && (
+                <p className="text-rose-500 text-xs font-bold text-center mt-3">{customError}</p>
+              )}
+            </div>
+          )}
 
           {/* Dairesel Sayaç */}
           <div className="relative flex items-center justify-center group">

@@ -47,6 +47,12 @@ const Settings = ({ refresh }) => {
     confirmPassword: "",
   });
 
+  const [showPasswords, setShowPasswords] = useState({
+    oldPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  });
+
   useEffect(() => {
     const fetchSettings = async () => {
       try {
@@ -531,13 +537,33 @@ const Settings = ({ refresh }) => {
                         <label className="block text-sm font-medium text-slate-400 mb-1.5">
                           {field.label}
                         </label>
-                        <input
-                          type="password"
-                          name={field.id}
-                          value={passwords[field.id] || ""}
-                          onChange={handlePasswordChange}
-                          className="w-full md:w-2/3 bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-indigo-500 transition-all"
-                        />
+                        <div className="relative w-full md:w-2/3">
+                          <input
+                            type={showPasswords[field.id] ? "text" : "password"}
+                            name={field.id}
+                            value={passwords[field.id] || ""}
+                            onChange={handlePasswordChange}
+                            className="w-full bg-slate-800/50 border border-slate-700 rounded-xl pl-4 pr-12 py-3 text-white outline-none focus:border-indigo-500 transition-all"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowPasswords((prev) => ({
+                                ...prev,
+                                [field.id]: !prev[field.id],
+                              }))
+                            }
+                            tabIndex={-1}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-400 transition-colors"
+                            aria-label={showPasswords[field.id] ? "Şifreyi gizle" : "Şifreyi göster"}
+                          >
+                            {showPasswords[field.id] ? (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     ))}
 

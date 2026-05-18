@@ -250,7 +250,7 @@ const Navbar = () => {
         {/* ARAMA MOTORU KONTEYNERİ */}
         <div
           ref={searchContainerRef}
-          className={`absolute top-0 right-32 transition-all duration-300 ease-out ${isSearchOpen ? "w-80 opacity-100" : "w-0 opacity-0 pointer-events-none"}`}
+          className={`absolute right-0 top-full mt-3 w-80 z-[120] transition-all duration-300 ease-out origin-top-right ${isSearchOpen ? "opacity-100 scale-100 translate-y-0 pointer-events-auto" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}
         >
           <div className="relative group">
             <input
@@ -350,7 +350,7 @@ const Navbar = () => {
 
           {/* Bildirimler Dropdown Paneli */}
           {isNotifDropdownOpen && (
-            <div className="absolute top-14 right-0 w-80 sm:w-96 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top-right flex flex-col max-h-[400px]">
+            <div className="fixed sm:absolute top-[4.5rem] sm:top-14 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 w-[calc(100vw-2rem)] max-w-sm sm:max-w-none sm:w-96 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-[2rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/50 overflow-hidden z-[110] transform transition-all animate-in fade-in slide-in-from-top-4 duration-200 origin-top sm:origin-top-right flex flex-col max-h-[400px]">
               {/* BİLDİRİM BAŞLIĞI VE TÜMÜNÜ OKU BUTONU */}
               <div className="p-4 border-b border-slate-100 dark:border-slate-800/80 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/20">
                 <div className="flex items-center gap-2">

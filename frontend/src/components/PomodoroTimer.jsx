@@ -13,8 +13,13 @@ const PomodoroTimer = ({ onComplete }) => {
   const [sessionId, setSessionId] = useState(null);
   const { fetchProfile } = useAuth();
 
+  const [isCustomOpen, setIsCustomOpen] = useState(false);
+  const [customHours, setCustomHours] = useState("");
+  const [customMinutes, setCustomMinutes] = useState("");
+  const [customError, setCustomError] = useState("");
+
   // Test için 1 dakika
-  const timeOptions = [1, 25, 30, 45, 60, 90]; 
+  const timeOptions = [1, 25, 30, 45, 60, 90];
 
   useEffect(() => {
     let interval = null;
@@ -139,6 +144,30 @@ const PomodoroTimer = ({ onComplete }) => {
     }
   };
 
+  const handleIntegerInput = (setter) => (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, "");
+    setter(value);
+    setCustomError("");
+  };
+
+  const handleApplyCustomTime = () => {
+    const hours = parseInt(customHours || "0", 10);
+    const minutes = parseInt(customMinutes || "0", 10);
+    const total = hours * 60 + minutes;
+
+    if (!Number.isFinite(total) || total <= 0) {
+      setCustomError("Lütfen geçerli bir süre girin.");
+      return;
+    }
+    if (total > 600) {
+      setCustomError("Maksimum 10 saat girebilirsiniz.");
+      return;
+    }
+
+    handleTimeSelect(total);
+    setIsCustomOpen(false);
+  };
+
   const handleTimeSelect = async (time) => {
     const currentId = sessionId;
     setSessionId(null);
@@ -161,7 +190,7 @@ const PomodoroTimer = ({ onComplete }) => {
       <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-sm dark:shadow-2xl border border-slate-100 dark:border-slate-800 p-10 flex flex-col items-center justify-center min-h-[600px] relative overflow-hidden transition-colors duration-500">
         <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
 
-        <div className="mb-10 flex flex-wrap justify-center gap-3 relative z-10">
+        <div className="mb-6 flex flex-wrap justify-center gap-3 relative z-10">
           {timeOptions.map((time) => (
             <button
               key={time}
@@ -176,7 +205,66 @@ const PomodoroTimer = ({ onComplete }) => {
               {time} dk
             </button>
           ))}
+
+          <button
+            onClick={() => setIsCustomOpen((v) => !v)}
+            disabled={isActive}
+            className={`px-5 py-2.5 rounded-2xl font-bold text-sm transition-all duration-300 flex items-center gap-1.5 ${
+              isCustomOpen || (!timeOptions.includes(workDuration))
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/50 scale-105"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+            } ${isActive ? "opacity-50 cursor-not-allowed" : ""}`}
+          >
+            <span>⚙️</span> Özel
+          </button>
         </div>
+
+        {isCustomOpen && (
+          <div className="mb-8 w-full max-w-md mx-auto bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl p-5 relative z-10 animate-in fade-in slide-in-from-top-2 duration-200">
+            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-3 text-center">
+              Özel Süre Belirle
+            </p>
+            <div className="flex items-end justify-center gap-3">
+              <div className="flex flex-col items-center">
+                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">Saat</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={customHours}
+                  onChange={handleIntegerInput(setCustomHours)}
+                  placeholder="0"
+                  disabled={isActive}
+                  className="w-20 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl py-2.5 text-lg font-black text-slate-800 dark:text-white outline-none transition-all"
+                />
+              </div>
+              <span className="text-2xl font-black text-slate-300 dark:text-slate-600 pb-2">:</span>
+              <div className="flex flex-col items-center">
+                <label className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">Dakika</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={customMinutes}
+                  onChange={handleIntegerInput(setCustomMinutes)}
+                  placeholder="0"
+                  disabled={isActive}
+                  className="w-20 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 focus:border-indigo-500 dark:focus:border-indigo-500 rounded-xl py-2.5 text-lg font-black text-slate-800 dark:text-white outline-none transition-all"
+                />
+              </div>
+              <button
+                onClick={handleApplyCustomTime}
+                disabled={isActive}
+                className="ml-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-all shadow-md shadow-indigo-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Uygula
+              </button>
+            </div>
+            {customError && (
+              <p className="text-rose-500 text-xs font-bold text-center mt-3">{customError}</p>
+            )}
+          </div>
+        )}
 
         <div
           className={`w-72 h-72 rounded-full border-[12px] flex items-center justify-center mb-12 shadow-inner transition-colors duration-500 relative z-10 ${

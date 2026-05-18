@@ -20,6 +20,12 @@ const ActiveRoom = ({ profile }) => {
   const [messages, setMessages] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
 
+  // ÖZEL SAYAÇ
+  const [isCustomOpen, setIsCustomOpen] = useState(false);
+  const [customHours, setCustomHours] = useState("");
+  const [customMinutes, setCustomMinutes] = useState("");
+  const [customError, setCustomError] = useState("");
+
   // 🔥 DAVET MODAL STATE'LERİ 🔥
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [friendsList, setFriendsList] = useState([]);
@@ -371,6 +377,29 @@ const ActiveRoom = ({ profile }) => {
     }
   };
 
+  const handleCustomIntegerInput = (setter) => (e) => {
+    setter(e.target.value.replace(/[^0-9]/g, ""));
+    setCustomError("");
+  };
+
+  const handleApplyCustomTime = () => {
+    const hours = parseInt(customHours || "0", 10);
+    const minutes = parseInt(customMinutes || "0", 10);
+    const total = hours * 60 + minutes;
+
+    if (!Number.isFinite(total) || total <= 0) {
+      setCustomError("Lütfen geçerli bir süre girin.");
+      return;
+    }
+    if (total > 600) {
+      setCustomError("Maksimum 10 saat girebilirsiniz.");
+      return;
+    }
+
+    handleRoomDurationSelect(total);
+    setIsCustomOpen(false);
+  };
+
   const handleRoomToggle = () => {
     toggleTimer();
     if (isOwner && socket && roomData) {
@@ -596,18 +625,74 @@ const ActiveRoom = ({ profile }) => {
 
           <div className="z-10 flex flex-col items-center w-full">
             {isOwner && (
-              <div className="flex flex-wrap justify-center gap-2 md:gap-3 mb-6 md:mb-10 px-2">
-                {[1, 25, 45, 60].map((min) => (
+              <>
+                <div className="flex justify-center gap-2 md:gap-3 mb-4 md:mb-6 px-2">
+                  {[1, 25, 45, 60].map((min) => (
+                    <button
+                      key={min}
+                      onClick={() => handleRoomDurationSelect(min)}
+                      disabled={isActive}
+                      className={`px-3 py-2 md:px-6 md:py-2.5 rounded-2xl text-[10px] font-black transition-all whitespace-nowrap ${selectedMinutes === min ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/40 translate-y-[-2px]" : "bg-slate-800/40 text-slate-500 hover:text-white border border-transparent hover:border-slate-700"} ${isActive ? "opacity-50 cursor-not-allowed" : ""}`}
+                    >
+                      {min} DK
+                    </button>
+                  ))}
                   <button
-                    key={min}
-                    onClick={() => handleRoomDurationSelect(min)}
+                    onClick={() => setIsCustomOpen((v) => !v)}
                     disabled={isActive}
-                    className={`px-4 py-2 md:px-6 md:py-2.5 rounded-2xl text-[10px] font-black transition-all ${selectedMinutes === min ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/40 translate-y-[-2px]" : "bg-slate-800/40 text-slate-500 hover:text-white border border-transparent hover:border-slate-700"}`}
+                    className={`px-3 py-2 md:px-5 md:py-2.5 rounded-2xl text-[10px] font-black transition-all flex items-center gap-1 whitespace-nowrap ${isCustomOpen || ![1, 25, 45, 60].includes(selectedMinutes) ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/40 translate-y-[-2px]" : "bg-slate-800/40 text-slate-500 hover:text-white border border-transparent hover:border-slate-700"} ${isActive ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
-                    {min} DK
+                    <span>⚙️</span> ÖZEL
                   </button>
-                ))}
-              </div>
+                </div>
+
+                {isCustomOpen && (
+                  <div className="mb-6 md:mb-10 w-full max-w-md mx-auto bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 md:p-5 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 text-center">
+                      Özel Süre Belirle
+                    </p>
+                    <div className="flex items-end justify-center gap-3">
+                      <div className="flex flex-col items-center">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1.5">Saat</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={customHours}
+                          onChange={handleCustomIntegerInput(setCustomHours)}
+                          placeholder="0"
+                          disabled={isActive}
+                          className="w-16 md:w-20 text-center bg-slate-900/80 border border-slate-700 focus:border-indigo-500 rounded-xl py-2 md:py-2.5 text-lg font-black text-white outline-none transition-all"
+                        />
+                      </div>
+                      <span className="text-2xl font-black text-slate-600 pb-2">:</span>
+                      <div className="flex flex-col items-center">
+                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1.5">Dakika</label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={customMinutes}
+                          onChange={handleCustomIntegerInput(setCustomMinutes)}
+                          placeholder="0"
+                          disabled={isActive}
+                          className="w-16 md:w-20 text-center bg-slate-900/80 border border-slate-700 focus:border-indigo-500 rounded-xl py-2 md:py-2.5 text-lg font-black text-white outline-none transition-all"
+                        />
+                      </div>
+                      <button
+                        onClick={handleApplyCustomTime}
+                        disabled={isActive}
+                        className="ml-2 px-4 md:px-5 py-2 md:py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[10px] tracking-widest transition-all shadow-md shadow-indigo-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        UYGULA
+                      </button>
+                    </div>
+                    {customError && (
+                      <p className="text-rose-400 text-xs font-bold text-center mt-3">{customError}</p>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
             <div
