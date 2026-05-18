@@ -40,7 +40,7 @@ const Dashboard = ({ profile, onComplete, notificationCount }) => {
       setCustomError("Lütfen geçerli bir süre girin.");
       return;
     }
-    if (total > 600) {
+    if (total > 600) {  
       setCustomError("Maksimum 10 saat girebilirsiniz.");
       return;
     }
