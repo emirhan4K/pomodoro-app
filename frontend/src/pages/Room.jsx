@@ -8,7 +8,15 @@ const Room = ({ profile }) => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+
+  const filteredRooms = rooms.filter((room) => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
+    const name = (room.roomName || room.name || "").toLowerCase();
+    return name.includes(term);
+  });
 
   const fetchRooms = async () => {
     try {
@@ -53,12 +61,36 @@ const Room = ({ profile }) => {
           </div>
           
           {/* Mobilde w-full (tam genişlik), bilgisayarda w-auto */}
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="w-full md:w-auto justify-center px-6 py-3 md:px-8 md:py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 hover:-translate-y-1 active:scale-95"
           >
             <span className="text-xl">+</span> YENİ ODA KUR
           </button>
+        </div>
+
+        <div className="mb-8 md:mb-10">
+          <div className="relative max-w-md">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Oda adına göre ara..."
+              className="w-full bg-[#161b22] border border-slate-800 focus:border-indigo-500/60 rounded-2xl py-3.5 pl-12 pr-10 text-sm font-bold text-white placeholder:text-slate-500 outline-none transition-all shadow-inner focus:ring-2 focus:ring-indigo-500/20"
+            />
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-rose-400 transition-colors"
+                aria-label="Aramayı temizle"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -67,19 +99,23 @@ const Room = ({ profile }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8">
-            {rooms.length > 0 ? (
-              rooms.map((room, index) => (
-                <RoomCard 
-                  key={room.id || room._id || index} 
-                  room={room} 
-                  currentUser={profile}        
-                  onJoinSuccess={fetchRooms} 
-                  onDeleteSuccess={fetchRooms} 
+            {filteredRooms.length > 0 ? (
+              filteredRooms.map((room, index) => (
+                <RoomCard
+                  key={room.id || room._id || index}
+                  room={room}
+                  currentUser={profile}
+                  onJoinSuccess={fetchRooms}
+                  onDeleteSuccess={fetchRooms}
                 />
               ))
             ) : (
               <div className="col-span-full py-20 text-center bg-[#161b22] border border-gray-800 rounded-3xl">
-                <p className="text-gray-500 font-bold italic">Henüz aktif bir oda bulunamadı.</p>
+                <p className="text-gray-500 font-bold italic">
+                  {searchTerm.trim()
+                    ? `"${searchTerm}" için sonuç bulunamadı.`
+                    : "Henüz aktif bir oda bulunamadı."}
+                </p>
               </div>
             )}
           </div>
